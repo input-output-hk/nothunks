@@ -23,10 +23,10 @@ module NoThunks.Class (
   , noThunksInValues
   , noThunksInKeysAndValues
     -- * Deriving-via wrappers
-  , CheckWhnf(..)
-  , CheckWhnfNamed(..)
-  , UseIsNormalForm(..)
-  , UseIsNormalFormNamed(..)
+  , OnlyCheckWhnf(..)
+  , OnlyCheckWhnfNamed(..)
+  , InspectHeap(..)
+  , InspectHeapNamed(..)
   , AllowThunk(..)
   , AllowThunksIn(..)
   ) where
@@ -231,15 +231,15 @@ noThunksInKeysAndValues ctxt =
 --
 -- Example:
 --
--- > deriving via CheckWhnf T instance NoThunks T
-newtype CheckWhnf a = CheckWhnf a
+-- > deriving via OnlyCheckWhnf T instance NoThunks T
+newtype OnlyCheckWhnf a = OnlyCheckWhnf a
 
--- | Variant on 'CheckWhnf' that does not depend on 'Typeable'
+-- | Variant on 'OnlyCheckWhnf' that does not depend on 'Generic'
 --
 -- Example:
 --
--- > deriving via CheckWhnfNamed "T" T instance NoThunks T
-newtype CheckWhnfNamed (name :: Symbol) a = CheckWhnfNamed a
+-- > deriving via OnlyCheckWhnfNamed "T" T instance NoThunks T
+newtype OnlyCheckWhnfNamed (name :: Symbol) a = OnlyCheckWhnfNamed a
 
 -- | Newtype wrapper for values that should be allowed to be a thunk
 --
@@ -260,43 +260,39 @@ newtype AllowThunk a = AllowThunk a
 -- "bar" fields.
 newtype AllowThunksIn (fields :: [Symbol]) a = AllowThunksIn a
 
--- | Newtype wrapper for use with @deriving via@ to use 'isNormalForm'
+-- | Newtype wrapper for use with @deriving via@ to inspect the heap directly
 --
--- 'NoThunks' instances derived using 'UseIsNormalForm' will use
--- 'isNormalForm' to check whether the argument is in normal form or not.
--- Since 'isNormalForm' does not need any additional type class instances, this
--- is useful for types that contain fields for which 'NoThunks'
--- instances are not available.
+-- This bypasses the class instances altogether, and inspects the GHC heap
+-- directly, checking that the value does not contain any thunks _anywhere_.
+-- Since we can do this without any type classes instances, this is useful for
+-- types that contain fields for which 'NoThunks' instances are not available.
 --
--- Since the primary use case for 'UseIsNormalForm' then is to give instances
+-- Since the primary use case for 'InspectHeap' then is to give instances
 -- for 'NoThunks' from third party libraries, we also don't want to
 -- rely on a 'Generic' instance, which may likewise not be available. Instead,
 -- we will rely on 'Typeable', which is available for /all/ types. However, as
 -- 'showTypeOf' explains, requiring 'Typeable' may not always be suitable; if
--- it isn't, 'UseIsNormalFormNamed' can be used.
+-- it isn't, 'InspectHeapNamed' can be used.
 --
 -- Example:
 --
--- > deriving via UseIsNormalForm T instance NoThunks T
-newtype UseIsNormalForm a = UseIsNormalForm a
+-- > deriving via InspectHeap T instance NoThunks T
+newtype InspectHeap a = InspectHeap a
 
--- | Newtype wrapper for use with @deriving via@ to use 'isNormalForm'
+-- | Variant on 'InspectHeap' that does not depend on 'Typeable'.
 --
--- This is a variant on 'UseIsNormalForm' which does not depend on 'Typeable',
--- but instead requires a name to be explicitly given. Example:
---
--- > deriving via UseIsNormalFormNamed "T" T instance NoUnexpecedThunks T
-newtype UseIsNormalFormNamed (name :: Symbol) a = UseIsNormalFormNamed a
+-- > deriving via InspectHeapNamed "T" T instance NoUnexpecedThunks T
+newtype InspectHeapNamed (name :: Symbol) a = InspectHeapNamed a
 
 {-------------------------------------------------------------------------------
   Internal: instances for the deriving-via wrappers
 -------------------------------------------------------------------------------}
 
-instance Typeable a => NoThunks (CheckWhnf a) where
+instance Typeable a => NoThunks (OnlyCheckWhnf a) where
   showTypeOf _  = show $ typeRep (Proxy @a)
   wNoThunks _ _ = return Nothing
 
-instance KnownSymbol name => NoThunks (CheckWhnfNamed name a) where
+instance KnownSymbol name => NoThunks (OnlyCheckWhnfNamed name a) where
   showTypeOf _  = symbolVal (Proxy @name)
   wNoThunks _ _ = return Nothing
 
@@ -313,16 +309,16 @@ instance (HasFields s a, Generic a, Typeable a, GWNoThunks s (Rep a))
       fp :: Rep a x
       !fp = from x
 
-instance Typeable a => NoThunks (UseIsNormalForm a) where
+instance Typeable a => NoThunks (InspectHeap a) where
   showTypeOf _ = show $ typeRep (Proxy @a)
   wNoThunks = noThunksUsingNormalForm
 
-instance KnownSymbol name => NoThunks (UseIsNormalFormNamed name a) where
+instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
   showTypeOf _ = symbolVal (Proxy @name)
   wNoThunks = noThunksUsingNormalForm
 
--- | Internal: implementation of 'wNoThunks' for 'UseIsNormalForm'
--- and 'UseIsNormalFormNamed'
+-- | Internal: implementation of 'wNoThunks' for 'InspectHeap'
+-- and 'InspectHeapNamed'
 noThunksUsingNormalForm :: [String] -> a -> IO (Maybe ThunkInfo)
 noThunksUsingNormalForm ctxt x = do
     nf <- isNormalForm x
@@ -428,39 +424,39 @@ instance Datatype c => GShowTypeOf (D1 c f) where
   Instances for primitive types
 -------------------------------------------------------------------------------}
 
-deriving via CheckWhnf Bool    instance NoThunks Bool
-deriving via CheckWhnf Natural instance NoThunks Natural
-deriving via CheckWhnf Integer instance NoThunks Integer
-deriving via CheckWhnf Float   instance NoThunks Float
-deriving via CheckWhnf Double  instance NoThunks Double
-deriving via CheckWhnf Char    instance NoThunks Char
+deriving via OnlyCheckWhnf Bool    instance NoThunks Bool
+deriving via OnlyCheckWhnf Natural instance NoThunks Natural
+deriving via OnlyCheckWhnf Integer instance NoThunks Integer
+deriving via OnlyCheckWhnf Float   instance NoThunks Float
+deriving via OnlyCheckWhnf Double  instance NoThunks Double
+deriving via OnlyCheckWhnf Char    instance NoThunks Char
 
-deriving via CheckWhnf Int   instance NoThunks Int
-deriving via CheckWhnf Int8  instance NoThunks Int8
-deriving via CheckWhnf Int16 instance NoThunks Int16
-deriving via CheckWhnf Int32 instance NoThunks Int32
-deriving via CheckWhnf Int64 instance NoThunks Int64
+deriving via OnlyCheckWhnf Int   instance NoThunks Int
+deriving via OnlyCheckWhnf Int8  instance NoThunks Int8
+deriving via OnlyCheckWhnf Int16 instance NoThunks Int16
+deriving via OnlyCheckWhnf Int32 instance NoThunks Int32
+deriving via OnlyCheckWhnf Int64 instance NoThunks Int64
 
-deriving via CheckWhnf Word   instance NoThunks Word
-deriving via CheckWhnf Word8  instance NoThunks Word8
-deriving via CheckWhnf Word16 instance NoThunks Word16
-deriving via CheckWhnf Word32 instance NoThunks Word32
-deriving via CheckWhnf Word64 instance NoThunks Word64
+deriving via OnlyCheckWhnf Word   instance NoThunks Word
+deriving via OnlyCheckWhnf Word8  instance NoThunks Word8
+deriving via OnlyCheckWhnf Word16 instance NoThunks Word16
+deriving via OnlyCheckWhnf Word32 instance NoThunks Word32
+deriving via OnlyCheckWhnf Word64 instance NoThunks Word64
 
 {-------------------------------------------------------------------------------
   Time
 -------------------------------------------------------------------------------}
 
-deriving via UseIsNormalForm Day              instance NoThunks Day
-deriving via UseIsNormalForm DiffTime         instance NoThunks DiffTime
-deriving via UseIsNormalForm LocalTime        instance NoThunks LocalTime
-deriving via UseIsNormalForm NominalDiffTime  instance NoThunks NominalDiffTime
-deriving via UseIsNormalForm TimeLocale       instance NoThunks TimeLocale
-deriving via UseIsNormalForm TimeOfDay        instance NoThunks TimeOfDay
-deriving via UseIsNormalForm TimeZone         instance NoThunks TimeZone
-deriving via UseIsNormalForm UniversalTime    instance NoThunks UniversalTime
-deriving via UseIsNormalForm UTCTime          instance NoThunks UTCTime
-deriving via UseIsNormalForm ZonedTime        instance NoThunks ZonedTime
+deriving via InspectHeap Day              instance NoThunks Day
+deriving via InspectHeap DiffTime         instance NoThunks DiffTime
+deriving via InspectHeap LocalTime        instance NoThunks LocalTime
+deriving via InspectHeap NominalDiffTime  instance NoThunks NominalDiffTime
+deriving via InspectHeap TimeLocale       instance NoThunks TimeLocale
+deriving via InspectHeap TimeOfDay        instance NoThunks TimeOfDay
+deriving via InspectHeap TimeZone         instance NoThunks TimeZone
+deriving via InspectHeap UniversalTime    instance NoThunks UniversalTime
+deriving via InspectHeap UTCTime          instance NoThunks UTCTime
+deriving via InspectHeap ZonedTime        instance NoThunks ZonedTime
 
 {-------------------------------------------------------------------------------
   ByteString
@@ -471,7 +467,7 @@ deriving via UseIsNormalForm ZonedTime        instance NoThunks ZonedTime
 -- Strict bytestrings /shouldn't/ contain any thunks, but could, due to
 -- <https://gitlab.haskell.org/ghc/ghc/issues/17290>. However, such thunks can't
 -- retain any data that they shouldn't, and so it's safe to ignore such thunks.
-deriving via CheckWhnfNamed "Strict.ByteString" BS.Strict.ByteString
+deriving via OnlyCheckWhnfNamed "Strict.ByteString" BS.Strict.ByteString
          instance NoThunks BS.Strict.ByteString
 
 -- | Instance for short bytestrings
@@ -482,7 +478,7 @@ deriving via CheckWhnfNamed "Strict.ByteString" BS.Strict.ByteString
 --
 -- Values of this type consist of a tag followed by an _unboxed_ byte array,
 -- which can't contain thunks. Therefore we only check WHNF.
-deriving via CheckWhnfNamed "ShortByteString" ShortByteString
+deriving via OnlyCheckWhnfNamed "ShortByteString" ShortByteString
          instance NoThunks ShortByteString
 
 -- | Instance for lazy bytestrings
@@ -504,7 +500,7 @@ instance NoThunks BS.Lazy.ByteString where
   For consistency, we follow the same pattern as for @ByteString@.
 -------------------------------------------------------------------------------}
 
-deriving via CheckWhnfNamed "Strict.Text" Text.Strict.Text
+deriving via OnlyCheckWhnfNamed "Strict.Text" Text.Strict.Text
          instance NoThunks Text.Strict.Text
 
 instance NoThunks Text.Lazy.Text where
@@ -604,7 +600,7 @@ instance NoThunks a => NoThunks (Vector.Boxed.Vector a) where
 
 -- | Unboxed vectors can't contain thunks
 --
--- Implementation note: defined manually rather than using 'CheckWhnf'
+-- Implementation note: defined manually rather than using 'OnlyCheckWhnf'
 -- due to ghc limitation in deriving via, making it impossible to use with it
 -- with data families.
 instance NoThunks (Vector.Unboxed.Vector a) where
@@ -626,12 +622,12 @@ instance NoThunks (Vector.Unboxed.Vector a) where
 -- By default we therefore /only/ check if the function is in WHNF, and don't
 -- check the captured values at all. If you want a stronger check, you can
 -- use @IsNormalForm (a -> b)@ instead.
-deriving via CheckWhnfNamed "->" (a -> b) instance NoThunks (a -> b)
+deriving via OnlyCheckWhnfNamed "->" (a -> b) instance NoThunks (a -> b)
 
 -- | We do not check IO actions for captured thunks by default
 --
 -- See instance for @(a -> b)@ for detailed discussion.
-deriving via CheckWhnfNamed "IO" (IO a) instance NoThunks (IO a)
+deriving via OnlyCheckWhnfNamed "IO" (IO a) instance NoThunks (IO a)
 
 {-------------------------------------------------------------------------------
   Special cases

@@ -62,12 +62,12 @@ tests = testGroup "NoThunks.Class" [
         , testProperty "Fn"       sanityCheckFn
         , testProperty "IO"       sanityCheckIO
         ]
-    , testGroup "UseIsNormalForm" [
-          testProperty "Int"        $                 testWithModel agreeOnNF $ Proxy @(UseIsNormalForm Int)
-        , testProperty "IntInt"     $                 testWithModel agreeOnNF $ Proxy @(UseIsNormalForm (Int, Int))
-        , testProperty "ListInt"    $                 testWithModel agreeOnNF $ Proxy @(UseIsNormalForm [Int])
-        , testProperty "IntListInt" $                 testWithModel agreeOnNF $ Proxy @(UseIsNormalForm (Int, [Int]))
-        , testProperty "SeqInt"     $ expectFailure $ testWithModel agreeOnNF $ Proxy @(UseIsNormalForm (Seq Int))
+    , testGroup "InspectHeap" [
+          testProperty "Int"        $                 testWithModel agreeOnNF $ Proxy @(InspectHeap Int)
+        , testProperty "IntInt"     $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, Int))
+        , testProperty "ListInt"    $                 testWithModel agreeOnNF $ Proxy @(InspectHeap [Int])
+        , testProperty "IntListInt" $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, [Int]))
+        , testProperty "SeqInt"     $ expectFailure $ testWithModel agreeOnNF $ Proxy @(InspectHeap (Seq Int))
         ]
     , testGroup "Model" [
           testProperty "Int"           $ testWithModel agreeOnContext $ Proxy @Int
@@ -83,7 +83,7 @@ tests = testGroup "NoThunks.Class" [
         ]
     ]
 
--- | When using @UseIsNormalForm@ we don't get a context, so merely check if
+-- | When using @InspectHeap@ we don't get a context, so merely check if
 -- both the model and the implementation agree whether or not the value is
 -- in NF
 agreeOnNF :: Maybe ThunkInfo -> Maybe [String] -> Bool
@@ -451,7 +451,7 @@ fnToIOContext ctxt                  = ctxt
 -------------------------------------------------------------------------------}
 
 newtype ThunkFree (name :: Symbol) a = ThunkFree a
-  deriving NoThunks via UseIsNormalFormNamed name a
+  deriving NoThunks via InspectHeapNamed name a
 
 instance FromModel (ThunkFree "->" (Int -> Int)) where
   newtype Model (ThunkFree "->" (Int -> Int)) = ThunkFreeFn (Model (Int -> Int))
@@ -484,15 +484,15 @@ instance FromModel (ThunkFree "IO" (IO ())) where
   Using the standard 'isNormalForm' check
 -------------------------------------------------------------------------------}
 
-instance (FromModel a, Typeable a) => FromModel (UseIsNormalForm a) where
-  newtype Model (UseIsNormalForm a) = Wrap { unwrap :: Model a }
+instance (FromModel a, Typeable a) => FromModel (InspectHeap a) where
+  newtype Model (InspectHeap a) = Wrap { unwrap :: Model a }
 
   genModel       = Wrap <$> genModel
   modelUnexpected ctxt = modelUnexpected ctxt . unwrap
   modelIsNF ctxt = modelIsNF ctxt . unwrap
-  fromModel m k  = fromModel (unwrap m) $ \x -> k (UseIsNormalForm x)
+  fromModel m k  = fromModel (unwrap m) $ \x -> k (InspectHeap x)
 
-deriving instance Show (Model a) => Show (Model (UseIsNormalForm a))
+deriving instance Show (Model a) => Show (Model (InspectHeap a))
 
 {-------------------------------------------------------------------------------
   Some sanity checks
@@ -504,7 +504,7 @@ deriving instance Show (Model a) => Show (Model (UseIsNormalForm a))
 {-# NOINLINE checkNF #-}
 checkNF :: Bool -> ((a -> PropertyT IO ()) -> PropertyT IO ()) -> Property
 checkNF expectedNF k = withTests 1 $ property $ k $ \x -> do
-    nf <- liftIO $ noThunks [] (UseIsNormalFormNamed @"a" x)
+    nf <- liftIO $ noThunks [] (InspectHeapNamed @"a" x)
     isNothing nf === expectedNF
 
 {-# NOINLINE sanityCheckIntNotNF #-}
