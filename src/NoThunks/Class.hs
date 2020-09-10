@@ -82,7 +82,7 @@ class NoThunks a where
   --
   -- if and only if
   --
-  -- > isNormalForm x
+  -- > containsThunks x
   --
   -- For some datatypes however, some thunks are expected. For example, the
   -- internal fingertree 'Data.Sequence.Sequence' might contain thunks (this is
@@ -100,16 +100,13 @@ class NoThunks a where
   -- and calls 'wNoThunks'. See 'UnexpectedThunkInfo' for a
   -- detailed discussion of the type context.
   --
-  -- See also discussion of caveats listed for 'NF.isNormalForm'.
+  -- See also discussion of caveats listed for 'NF.containsThunks'.
   noThunks :: [String] -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
-      hnf <- isHeadNormalForm x
-      if hnf then
-        wNoThunks ctxt' x
-      else
-        return $ Just ThunkInfo {
-            thunkContext = ctxt'
-          }
+      isThunk <- checkIsThunk x
+      if isThunk
+        then return $ Just ThunkInfo { thunkContext = ctxt' }
+        else wNoThunks ctxt' x
     where
       ctxt' :: [String]
       ctxt' = showTypeOf (Proxy @a) : ctxt
@@ -311,21 +308,20 @@ instance (HasFields s a, Generic a, Typeable a, GWNoThunks s (Rep a))
 
 instance Typeable a => NoThunks (InspectHeap a) where
   showTypeOf _ = show $ typeRep (Proxy @a)
-  wNoThunks = noThunksUsingNormalForm
+  wNoThunks = inspectHeap
 
 instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
   showTypeOf _ = symbolVal (Proxy @name)
-  wNoThunks = noThunksUsingNormalForm
+  wNoThunks = inspectHeap
 
 -- | Internal: implementation of 'wNoThunks' for 'InspectHeap'
 -- and 'InspectHeapNamed'
-noThunksUsingNormalForm :: [String] -> a -> IO (Maybe ThunkInfo)
-noThunksUsingNormalForm ctxt x = do
-    nf <- isNormalForm x
-    return $ if nf then Nothing
-                   else Just $ ThunkInfo {
-                            thunkContext = "..." : ctxt
-                          }
+inspectHeap :: [String] -> a -> IO (Maybe ThunkInfo)
+inspectHeap ctxt x = do
+    containsThunks <- checkContainsThunks x
+    return $ if containsThunks
+               then Just $ ThunkInfo { thunkContext = "..." : ctxt }
+               else Nothing
 
 {-------------------------------------------------------------------------------
   Internal: generic infrastructure
@@ -614,7 +610,7 @@ instance NoThunks (Vector.Unboxed.Vector a) where
 -- | We do NOT check function closures for captured thunks by default
 --
 -- Since we have no type information about the values captured in a thunk,
--- the only check we could possibly do is 'isNormalForm': we can't recursively
+-- the only check we could possibly do is 'containsThunks': we can't recursively
 -- call 'noThunks' on those captured values, which is problematic if
 -- any of those captured values /requires/ a custom instance (for example,
 -- data types that depend on laziness, such as 'Seq').
@@ -694,35 +690,36 @@ instance (HasField x a t, HasFields xs a) => HasFields (x ': xs) a
   Internal: low level magic
 -------------------------------------------------------------------------------}
 
-isHeadNormalForm :: a -> IO Bool
-isHeadNormalForm x = closureIsNF <$> getBoxedClosureData (asBox x)
+-- | Is the argument a (top-level thunk)?
+checkIsThunk :: a -> IO Bool
+checkIsThunk x = closureIsThunk <$> getBoxedClosureData (asBox x)
 
-isNormalForm :: a -> IO Bool
-isNormalForm x = go (asBox x)
+-- | Is the argument a thunk, or does it (recursively) contain any?
+checkContainsThunks :: a -> IO Bool
+checkContainsThunks x = go (asBox x)
   where
     go :: Box -> IO Bool
     go b = do
         c <- getBoxedClosureData b
-        if closureIsNF c then do
-          c' <- getBoxedClosureData b
-          allM go (allClosures c')
+        if closureIsThunk c then
+          return True
         else do
-          return False
+          c' <- getBoxedClosureData b
+          anyM go (allClosures c')
 
--- | Check if the given 'Closure' is in NF
+-- | Check if the given 'Closure' is a thunk.
 --
--- Everything is in normal form, unless explicitly marked as a thunk.
--- Indirections are also considered to be in HNF.
-closureIsNF :: Closure -> Bool
-closureIsNF ThunkClosure{}    = False
-closureIsNF APClosure{}       = False
-closureIsNF SelectorClosure{} = False
-closureIsNF BCOClosure{}      = False
-closureIsNF _                 = True
+-- Indirections are not considered to be thunks.
+closureIsThunk :: Closure -> Bool
+closureIsThunk ThunkClosure{}    = True
+closureIsThunk APClosure{}       = True
+closureIsThunk SelectorClosure{} = True
+closureIsThunk BCOClosure{}      = True
+closureIsThunk _                 = False
 
-allM :: Monad m => (a -> m Bool) -> [a] -> m Bool
-allM _ []       = return True
-allM p (x : xs) = do
+anyM :: Monad m => (a -> m Bool) -> [a] -> m Bool
+anyM _ []       = return False
+anyM p (x : xs) = do
     q <- p x
-    if q then allM p xs
-         else return False
+    if q then return True
+         else anyM p xs
