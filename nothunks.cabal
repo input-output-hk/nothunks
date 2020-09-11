@@ -3,9 +3,9 @@ name:               nothunks
 version:            0.1.0.0
 synopsis:           Examine values for unexpected thunks
 description:        Long lived application data typically should not contain
-                    any thunks. Ths library can be used to examine values for
+                    any thunks. This library can be used to examine values for
                     unexpected thunks, which can then be used in assertions.
-                    This can be invaluable to avoiding memory leaks, or tracking
+                    This can be invaluable in avoiding memory leaks, or tracking
                     down existing ones.
 license:            MIT
 license-file:       LICENSE
