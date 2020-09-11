@@ -101,14 +101,14 @@ class NoThunks a where
   -- detailed discussion of the type context.
   --
   -- See also discussion of caveats listed for 'NF.containsThunks'.
-  noThunks :: [String] -> a -> IO (Maybe ThunkInfo)
+  noThunks :: Context -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
       isThunk <- checkIsThunk x
       if isThunk
         then return $ Just ThunkInfo { thunkContext = ctxt' }
         else wNoThunks ctxt' x
     where
-      ctxt' :: [String]
+      ctxt' :: Context
       ctxt' = showTypeOf (Proxy @a) : ctxt
 
   -- | Check that the argument is in normal form, assuming it is in WHNF.
@@ -116,9 +116,9 @@ class NoThunks a where
   -- The context will already have been extended with the type we're looking at,
   -- so all that's left is to look at the thunks /inside/ the type. The default
   -- implementation uses GHC Generics to do this.
-  wNoThunks :: [String] -> a -> IO (Maybe ThunkInfo)
+  wNoThunks :: Context -> a -> IO (Maybe ThunkInfo)
   default wNoThunks :: (Generic a, GWNoThunks '[] (Rep a))
-                    => [String] -> a -> IO (Maybe ThunkInfo)
+                    => Context -> a -> IO (Maybe ThunkInfo)
   wNoThunks ctxt x = gwNoThunks (Proxy @'[]) ctxt fp
     where
       -- Force the result of @from@ to WHNF: we are not interested in thunks
@@ -150,6 +150,18 @@ class NoThunks a where
       x :: a
       x = x
 
+-- | Context where a thunk was found
+--
+-- This is intended to give a hint about which thunk was found. For example,
+-- a thunk might be reported with context
+--
+-- > ["Int", "(,)", "Map", "AppState"]
+--
+-- telling you that you have an @AppState@ containing a @Map@ containing a pair,
+-- all of which weren't thunks (were in WHNF), but that pair contained an
+-- @Int@ which was a thunk.
+type Context = [String]
+
 {-------------------------------------------------------------------------------
   Results of the check
 -------------------------------------------------------------------------------}
@@ -161,7 +173,7 @@ class NoThunks a where
 -- could not only show the type of the unexpected thunk, but also where it got
 -- allocated.
 data ThunkInfo = ThunkInfo {
-      -- The @[String]@ argument is intended to give a clue to add debugging.
+      -- The @Context@ argument is intended to give a clue to add debugging.
       -- For example, suppose we have something of type @(Int, [Int])@. The
       -- various contexts we might get are
       --
@@ -171,7 +183,7 @@ data ThunkInfo = ThunkInfo {
       -- > ["Int","(,)"]            the Int in the pair
       -- > ["[]","(,)"]             the [Int] in the pair
       -- > ["Int","[]","(,)"]       an Int in the [Int] in the pair
-      thunkContext :: [String]
+      thunkContext :: Context
     }
   deriving (Show)
 
@@ -201,14 +213,14 @@ allNoThunks = go
 -- container.
 --
 -- See also 'noThunksInKeysAndValues'
-noThunksInValues :: NoThunks a => [String] -> [a] -> IO (Maybe ThunkInfo)
+noThunksInValues :: NoThunks a => Context -> [a] -> IO (Maybe ThunkInfo)
 noThunksInValues ctxt = allNoThunks . map (noThunks ctxt)
 
 -- | Variant on 'noThunksInValues' for keyed containers.
 --
 -- Neither the list nor the tuples are checked for thunks.
 noThunksInKeysAndValues :: (NoThunks k, NoThunks v)
-                        => [String] -> [(k, v)] -> IO (Maybe ThunkInfo)
+                        => Context -> [(k, v)] -> IO (Maybe ThunkInfo)
 noThunksInKeysAndValues ctxt =
       allNoThunks
     . concatMap (\(k, v) -> [ noThunks ctxt k
@@ -316,7 +328,7 @@ instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
 
 -- | Internal: implementation of 'wNoThunks' for 'InspectHeap'
 -- and 'InspectHeapNamed'
-inspectHeap :: [String] -> a -> IO (Maybe ThunkInfo)
+inspectHeap :: Context -> a -> IO (Maybe ThunkInfo)
 inspectHeap ctxt x = do
     containsThunks <- checkContainsThunks x
     return $ if containsThunks
@@ -335,7 +347,7 @@ class GWNoThunks (a :: [Symbol]) f where
   -- | Check that the argument does not contain any unexpected thunks
   --
   -- Precondition: the argument is in WHNF.
-  gwNoThunks :: proxy a -> [String] -> f x -> IO (Maybe ThunkInfo)
+  gwNoThunks :: proxy a -> Context -> f x -> IO (Maybe ThunkInfo)
 
 instance GWNoThunks a f => GWNoThunks a (D1 c f) where
   gwNoThunks a ctxt (M1 fp) = gwNoThunks a ctxt fp
@@ -397,7 +409,7 @@ instance GWRecordField f (Elem fieldName a)
       gwRecordField (Proxy @(Elem fieldName a)) ctxt fp
 
 class GWRecordField f (b :: Bool) where
-  gwRecordField :: proxy b -> [String] -> f x -> IO (Maybe ThunkInfo)
+  gwRecordField :: proxy b -> Context -> f x -> IO (Maybe ThunkInfo)
 
 -- | If the field is allowed to contain thunks, don't check anything.
 instance GWRecordField f 'True where
