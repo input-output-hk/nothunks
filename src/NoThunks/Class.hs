@@ -633,7 +633,7 @@ instance NoThunks (Vector.Unboxed.Vector a) where
 --
 -- By default we therefore /only/ check if the function is in WHNF, and don't
 -- check the captured values at all. If you want a stronger check, you can
--- use @InspectHeap (a -> b)@ instead.
+-- use @'InspectHeap' (a -> b)@ instead.
 deriving via OnlyCheckWhnfNamed "->" (a -> b) instance NoThunks (a -> b)
 
 -- | We do not check IO actions for captured thunks by default
