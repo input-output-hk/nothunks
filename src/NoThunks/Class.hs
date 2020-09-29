@@ -19,7 +19,7 @@ module NoThunks.Class (
   , ThunkInfo(..)
   , Context
   , unsafeNoThunks
-    -- * Helpders for defining instances
+    -- * Helpers for defining instances
   , allNoThunks
   , noThunksInValues
   , noThunksInKeysAndValues
