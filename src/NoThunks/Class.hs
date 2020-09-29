@@ -30,6 +30,8 @@ module NoThunks.Class (
   , InspectHeapNamed(..)
   , AllowThunk(..)
   , AllowThunksIn(..)
+    -- * Generic class
+  , GWNoThunks(..)
   ) where
 
 import           Data.Proxy
