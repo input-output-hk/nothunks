@@ -2,7 +2,7 @@
 
 ## 0.1.1.0 -- 2020-09-29
 
-* Export `Context`
+* Export `Context` and `GWNoThunks`
 * Fix typos in Haddocks
 * Improve bounds (and add upper bounds)
 
