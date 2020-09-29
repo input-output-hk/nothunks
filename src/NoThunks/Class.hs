@@ -34,30 +34,30 @@ module NoThunks.Class (
   , GWNoThunks(..)
   ) where
 
-import           Data.Proxy
-import           Data.Typeable
-import           System.IO.Unsafe              (unsafePerformIO)
+import Data.Proxy
+import Data.Typeable
+import System.IO.Unsafe (unsafePerformIO)
 
-import           GHC.Exts.Heap
-import           GHC.Generics
-import           GHC.Records
-import           GHC.TypeLits
+import GHC.Exts.Heap
+import GHC.Generics
+import GHC.Records
+import GHC.TypeLits
 
 -- For instances
 
-import           Data.ByteString.Short         (ShortByteString)
-import           Data.Foldable                 (toList)
-import           Data.Int
-import           Data.IntMap                   (IntMap)
-import           Data.List.NonEmpty            (NonEmpty (..))
-import           Data.Map                      (Map)
-import           Data.Ratio
-import           Data.Sequence                 (Seq)
-import           Data.Set                      (Set)
-import           Data.Time
-import           Data.Word
-import           GHC.Stack
-import           Numeric.Natural
+import Data.ByteString.Short (ShortByteString)
+import Data.Foldable (toList)
+import Data.Int
+import Data.IntMap (IntMap)
+import Data.List.NonEmpty (NonEmpty (..))
+import Data.Map (Map)
+import Data.Ratio
+import Data.Sequence (Seq)
+import Data.Set (Set)
+import Data.Time
+import Data.Word
+import GHC.Stack
+import Numeric.Natural
 
 import qualified Data.ByteString               as BS.Strict
 import qualified Data.ByteString.Lazy          as BS.Lazy
