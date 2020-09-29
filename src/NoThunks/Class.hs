@@ -96,12 +96,12 @@ class NoThunks a where
   -- 'noThunks' to force such "expected thunks", as long as it always
   -- reports the /unexpected/ thunks.
   --
-  -- The default implementation of 'noThunks' checks that the argument
-  -- is in WHNF, and if so, adds the type into the context (using 'showTypeOf'),
-  -- and calls 'wNoThunks'. See 'UnexpectedThunkInfo' for a
-  -- detailed discussion of the type context.
+  -- The default implementation of 'noThunks' checks that the argument is in
+  -- WHNF, and if so, adds the type into the context (using 'showTypeOf'), and
+  -- calls 'wNoThunks'. See 'ThunkInfo' for a detailed discussion of the type
+  -- context.
   --
-  -- See also discussion of caveats listed for 'NF.checkContainsThunks'.
+  -- See also discussion of caveats listed for 'checkContainsThunks'.
   noThunks :: Context -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
       isThunk <- checkIsThunk x

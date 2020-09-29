@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               nothunks
-version:            0.1.0.0
+version:            0.1.1.0
 synopsis:           Examine values for unexpected thunks
 description:        Long lived application data typically should not contain
                     any thunks. This library can be used to examine values for
