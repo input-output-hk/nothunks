@@ -83,7 +83,7 @@ class NoThunks a where
   --
   -- if and only if
   --
-  -- > containsThunks x
+  -- > checkContainsThunks x
   --
   -- For some datatypes however, some thunks are expected. For example, the
   -- internal fingertree 'Data.Sequence.Sequence' might contain thunks (this is
@@ -101,7 +101,7 @@ class NoThunks a where
   -- and calls 'wNoThunks'. See 'UnexpectedThunkInfo' for a
   -- detailed discussion of the type context.
   --
-  -- See also discussion of caveats listed for 'NF.containsThunks'.
+  -- See also discussion of caveats listed for 'NF.checkContainsThunks'.
   noThunks :: Context -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
       isThunk <- checkIsThunk x
@@ -622,11 +622,11 @@ instance NoThunks (Vector.Unboxed.Vector a) where
 
 -- | We do NOT check function closures for captured thunks by default
 --
--- Since we have no type information about the values captured in a thunk,
--- the only check we could possibly do is 'containsThunks': we can't recursively
--- call 'noThunks' on those captured values, which is problematic if
--- any of those captured values /requires/ a custom instance (for example,
--- data types that depend on laziness, such as 'Seq').
+-- Since we have no type information about the values captured in a thunk, the
+-- only check we could possibly do is 'checkContainsThunks': we can't
+-- recursively call 'noThunks' on those captured values, which is problematic if
+-- any of those captured values /requires/ a custom instance (for example, data
+-- types that depend on laziness, such as 'Seq').
 --
 -- By default we therefore /only/ check if the function is in WHNF, and don't
 -- check the captured values at all. If you want a stronger check, you can
