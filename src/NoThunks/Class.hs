@@ -9,14 +9,15 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE TypeFamilies          #-}
 
 module NoThunks.Class (
     -- * Check a value for unexpected thunks
     NoThunks(..)
   , ThunkInfo(..)
+  , Context
   , unsafeNoThunks
     -- * Helpders for defining instances
   , allNoThunks
@@ -31,30 +32,30 @@ module NoThunks.Class (
   , AllowThunksIn(..)
   ) where
 
-import Data.Proxy
-import Data.Typeable
-import System.IO.Unsafe (unsafePerformIO)
+import           Data.Proxy
+import           Data.Typeable
+import           System.IO.Unsafe              (unsafePerformIO)
 
-import GHC.Exts.Heap
-import GHC.Generics
-import GHC.Records
-import GHC.TypeLits
+import           GHC.Exts.Heap
+import           GHC.Generics
+import           GHC.Records
+import           GHC.TypeLits
 
 -- For instances
 
-import Data.ByteString.Short (ShortByteString)
-import Data.Foldable (toList)
-import Data.Int
-import Data.IntMap (IntMap)
-import Data.List.NonEmpty (NonEmpty(..))
-import Data.Map (Map)
-import Data.Ratio
-import Data.Sequence (Seq)
-import Data.Set (Set)
-import Data.Time
-import Data.Word
-import GHC.Stack
-import Numeric.Natural
+import           Data.ByteString.Short         (ShortByteString)
+import           Data.Foldable                 (toList)
+import           Data.Int
+import           Data.IntMap                   (IntMap)
+import           Data.List.NonEmpty            (NonEmpty (..))
+import           Data.Map                      (Map)
+import           Data.Ratio
+import           Data.Sequence                 (Seq)
+import           Data.Set                      (Set)
+import           Data.Time
+import           Data.Word
+import           GHC.Stack
+import           Numeric.Natural
 
 import qualified Data.ByteString               as BS.Strict
 import qualified Data.ByteString.Lazy          as BS.Lazy
