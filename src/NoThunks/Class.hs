@@ -79,7 +79,7 @@ class NoThunks a where
   --
   -- For most datatypes, we should have that
   --
-  -- > noThunks ctxt x == NoThunks
+  -- > noThunks ctxt x == Nothing
   --
   -- if and only if
   --
