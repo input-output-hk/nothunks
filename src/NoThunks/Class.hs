@@ -55,6 +55,7 @@ import Data.Ratio
 import Data.Sequence (Seq)
 import Data.Set (Set)
 import Data.Time
+import Data.Void (Void)
 import Data.Word
 import GHC.Stack
 import Numeric.Natural
@@ -572,6 +573,7 @@ instance ( NoThunks a
   Base types (other than tuples)
 -------------------------------------------------------------------------------}
 
+instance NoThunks Void
 instance NoThunks ()
 
 instance NoThunks a => NoThunks [a]
