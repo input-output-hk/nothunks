@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE DeriveGeneric       #-}
@@ -37,6 +38,11 @@ import Test.Tasty.Hedgehog
 
 import qualified Data.Sequence          as Seq
 import qualified Data.Sequence.Internal as Seq.Internal
+
+import qualified Control.Concurrent.MVar       as MVar
+import qualified Control.Concurrent.STM        as STM
+import qualified Control.Concurrent.STM.TVar   as TVar
+import qualified Data.IORef                    as IORef
 
 import Hedgehog
 import Hedgehog.Internal.Report (Result (..), reportStatus)
@@ -80,6 +86,11 @@ tests = testGroup "NoThunks.Class" [
         , testProperty "IO"            $ testWithModel agreeOnContext $ Proxy @(IO ())
         , testProperty "ThunkFreeFn"   $ testWithModel agreeOnContext $ Proxy @(ThunkFree "->" (Int -> Int))
         , testProperty "ThunkFreeIO"   $ testWithModel agreeOnContext $ Proxy @(ThunkFree "IO" (IO ()))
+        ]
+    , testGroup "MutableVars" [
+          checkRef (Proxy :: Proxy IORef.IORef)
+        , checkRef (Proxy :: Proxy MVar.MVar)
+        , checkRef (Proxy :: Proxy TVar.TVar)
         ]
     ]
 
@@ -541,6 +552,95 @@ sanityCheckIO = checkNF False $ \k -> do
     b <- liftIO $ randomRIO (False, True)
     n <- liftIO $ ack 5 <$> randomRIO (0, 10)
     k (print (notStrict b n 6) :: IO ())
+
+{-------------------------------------------------------------------------------
+  Mutable Vars
+-------------------------------------------------------------------------------}
+
+checkRef :: forall ref. (IsRef ref, NoThunks (ref Int)) => Proxy ref -> TestTree
+checkRef p = testGroup (show (typeRep p)) [
+      testProperty "NotNF"           checkRefNotNF
+    , testProperty "NF"              checkRefNF
+    , testProperty "NotNFPure"       checkRefNotNFPure
+    , testProperty "NFPure"          checkRefNFPure
+    , testProperty "NotNFAtomically" checkRefNotNFAtomically
+    , testProperty "NFAtomically"    checkRefNFAtomically
+    ]
+  where
+    checkRefNotNF :: Property
+    checkRefNotNF = checkNFClass False $ \k -> do
+        ref <- liftIO (newRef (if ack 3 3 > 0 then x else x) :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        x = 0
+
+    checkRefNF :: Property
+    checkRefNF = checkNFClass True $ \k -> do
+        ! ref <- liftIO (newRef x :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        !x = 0
+
+    checkRefNotNFPure :: Property
+    checkRefNotNFPure = unsafeCheckNF False $ \k -> do
+        ref <- liftIO (newRef (if ack 3 3 > 0 then x else x) :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        x = 0
+
+    checkRefNFPure :: Property
+    checkRefNFPure = unsafeCheckNF True $ \k -> do
+        ! ref <- liftIO (newRef x :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        !x = 0
+
+    checkRefNotNFAtomically :: Property
+    checkRefNotNFAtomically = unsafeCheckNFAtomically False $ \k -> do
+        ref <- liftIO (newRef (if ack 3 3 > 0 then x else x) :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        x = 0
+
+    checkRefNFAtomically :: Property
+    checkRefNFAtomically = unsafeCheckNFAtomically True $ \k -> do
+        ! ref <- liftIO (newRef x :: IO (ref Int))
+        k ref
+      where
+        x :: Int
+        !x = 0
+
+class Typeable ref => IsRef ref where newRef :: a -> IO (ref a)
+
+instance IsRef IORef.IORef where newRef = IORef.newIORef
+instance IsRef MVar.MVar   where newRef = MVar.newMVar
+instance IsRef TVar.TVar   where newRef = TVar.newTVarIO
+
+checkNFClass :: NoThunks a => Bool -> ((a -> PropertyT IO ()) -> PropertyT IO ()) -> Property
+checkNFClass expectedNF k = withTests 1 $ property $ k $ \x -> do
+    nf <- liftIO $ noThunks [] x
+    isNothing nf === expectedNF
+
+{-# NOINLINE unsafeCheckNF #-}
+unsafeCheckNF :: NoThunks a => Bool -> ((a -> PropertyT IO ()) -> PropertyT IO ()) -> Property
+unsafeCheckNF expectedNF k = withTests 1 $ property $ k $ \x -> do
+    let nf = unsafeNoThunks x
+    isNothing nf === expectedNF
+
+{-# NOINLINE unsafeCheckNFAtomically #-}
+unsafeCheckNFAtomically :: NoThunks a => Bool -> ((a -> PropertyT IO ()) -> PropertyT IO ()) -> Property
+unsafeCheckNFAtomically expectedNF k = withTests 1 $ property $ k $ \x -> do
+    tvar <- liftIO (TVar.newTVarIO True)
+    true <- liftIO $ STM.atomically $ do
+        val <- TVar.readTVar tvar
+        -- the $! is essential to trigger NestedAtomically exception.
+        return $! val && isNothing (unsafeNoThunks x)
+    true === expectedNF
 
 {-------------------------------------------------------------------------------
   Hedgehog auxiliary
