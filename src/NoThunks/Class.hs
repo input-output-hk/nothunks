@@ -60,10 +60,13 @@ import Data.Word
 import GHC.Stack
 import Numeric.Natural
 
+import qualified Control.Concurrent.MVar       as MVar
+import qualified Control.Concurrent.STM.TVar   as TVar
 import qualified Data.ByteString               as BS.Strict
 import qualified Data.ByteString.Lazy          as BS.Lazy
 import qualified Data.ByteString.Lazy.Internal as BS.Lazy.Internal
 import qualified Data.IntMap                   as IntMap
+import qualified Data.IORef                    as IORef
 import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import qualified Data.Text                     as Text.Strict
@@ -455,6 +458,37 @@ deriving via OnlyCheckWhnf Word8  instance NoThunks Word8
 deriving via OnlyCheckWhnf Word16 instance NoThunks Word16
 deriving via OnlyCheckWhnf Word32 instance NoThunks Word32
 deriving via OnlyCheckWhnf Word64 instance NoThunks Word64
+
+{-------------------------------------------------------------------------------
+  Mutable Vars
+-------------------------------------------------------------------------------}
+
+instance NoThunks a => NoThunks (IORef.IORef a) where
+    showTypeOf _ = "IORef"
+    wNoThunks ctx ref = do
+        val <- IORef.readIORef ref
+        noThunks ctx val
+
+instance NoThunks a => NoThunks (MVar.MVar a) where
+    showTypeOf _ = "MVar"
+    wNoThunks ctx ref = do
+        val <- MVar.tryReadMVar ref
+        maybe (return Nothing) (noThunks ctx) val
+
+instance NoThunks a => NoThunks (TVar.TVar a) where
+    showTypeOf _ = "TVar"
+    wNoThunks ctx ref = do
+        -- An alternative is to use
+        --
+        --   val <- STM.atomically $ TVar.readTVar ref
+        --
+        -- but that would cause nested atomically failures with
+        -- unsafeNoThunks. Fortunately, readTVarIO doesn't make a transaction.
+        --
+        -- See related tests.
+        --
+        val <- TVar.readTVarIO ref
+        noThunks ctx val
 
 {-------------------------------------------------------------------------------
   Time
