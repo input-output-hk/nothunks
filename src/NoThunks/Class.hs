@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE DerivingVia           #-}
@@ -45,7 +46,6 @@ import GHC.TypeLits
 
 -- For instances
 
-import Data.ByteString.Short (ShortByteString)
 import Data.Foldable (toList)
 import Data.Int
 import Data.IntMap (IntMap)
@@ -62,18 +62,28 @@ import Numeric.Natural
 
 import qualified Control.Concurrent.MVar       as MVar
 import qualified Control.Concurrent.STM.TVar   as TVar
-import qualified Data.ByteString               as BS.Strict
-import qualified Data.ByteString.Lazy          as BS.Lazy
-import qualified Data.ByteString.Lazy.Internal as BS.Lazy.Internal
 import qualified Data.IntMap                   as IntMap
 import qualified Data.IORef                    as IORef
 import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
+
+#ifdef MIN_VERSION_bytestring
+import Data.ByteString.Short (ShortByteString)
+import qualified Data.ByteString               as BS.Strict
+import qualified Data.ByteString.Lazy          as BS.Lazy
+import qualified Data.ByteString.Lazy.Internal as BS.Lazy.Internal
+#endif
+
+#ifdef MIN_VERSION_text
 import qualified Data.Text                     as Text.Strict
 import qualified Data.Text.Internal.Lazy       as Text.Lazy.Internal
 import qualified Data.Text.Lazy                as Text.Lazy
+#endif
+
+#ifdef MIN_VERSION_vector
 import qualified Data.Vector                   as Vector.Boxed
 import qualified Data.Vector.Unboxed           as Vector.Unboxed
+#endif
 
 {-------------------------------------------------------------------------------
   Check a value for unexpected thunks
@@ -509,6 +519,8 @@ deriving via InspectHeap ZonedTime        instance NoThunks ZonedTime
   ByteString
 -------------------------------------------------------------------------------}
 
+#ifdef MIN_VERSION_bytestring
+
 -- | Instance for string bytestrings
 --
 -- Strict bytestrings /shouldn't/ contain any thunks, but could, due to
@@ -541,11 +553,15 @@ instance NoThunks BS.Lazy.ByteString where
             , noThunks ctxt bs'
             ]
 
+#endif
+
 {-------------------------------------------------------------------------------
   Instances for text types
 
   For consistency, we follow the same pattern as for @ByteString@.
 -------------------------------------------------------------------------------}
+
+#ifdef MIN_VERSION_text
 
 deriving via OnlyCheckWhnfNamed "Strict.Text" Text.Strict.Text
          instance NoThunks Text.Strict.Text
@@ -559,6 +575,8 @@ instance NoThunks Text.Lazy.Text where
               noThunks ctxt chunk
             , noThunks ctxt bs'
             ]
+
+#endif
 
 {-------------------------------------------------------------------------------
   Tuples
@@ -642,6 +660,8 @@ instance NoThunks a => NoThunks (IntMap a) where
   Vector
 -------------------------------------------------------------------------------}
 
+#ifdef MIN_VERSION_vector
+
 instance NoThunks a => NoThunks (Vector.Boxed.Vector a) where
   showTypeOf _   = "Boxed.Vector"
   wNoThunks ctxt = noThunksInValues ctxt . Vector.Boxed.toList
@@ -654,6 +674,8 @@ instance NoThunks a => NoThunks (Vector.Boxed.Vector a) where
 instance NoThunks (Vector.Unboxed.Vector a) where
   showTypeOf _  = "Unboxed.Vector"
   wNoThunks _ _ = return Nothing
+
+#endif
 
 {-------------------------------------------------------------------------------
   Function types
