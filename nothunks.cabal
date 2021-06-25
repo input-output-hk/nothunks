@@ -20,19 +20,35 @@ source-repository head
   type:     git
   location: https://github.com/input-output-hk/nothunks
 
+flag bytestring
+  description: Provide instances for bytestring
+  default: True
+
+flag text
+  description: Provide instances for text
+  default: True
+
+flag vector
+  description: Provide instances for vector
+  default: True
+
 library
     exposed-modules:  NoThunks.Class
 
     build-depends:    base       >= 4.12 && < 5
-                    , bytestring >= 0.10 && < 0.12
                     , containers >= 0.5  && < 0.7
                     , stm        >= 2.5  && < 2.6
-                    , text       >= 1.2  && < 1.3
-                    , time       >= 1.5  && < 1.11
-                    , vector     >= 0.12 && < 0.13
+                    , time       >= 1.5  && < 1.13
 
                       -- Whatever is bundled with ghc
                     , ghc-heap
+
+    if flag(bytestring)
+      build-depends:  bytestring >= 0.10 && < 0.12
+    if flag(text)
+      build-depends:  text       >= 1.2  && < 1.3
+    if flag(vector)
+      build-depends:  vector     >= 0.12 && < 0.13
 
     hs-source-dirs:   src
     default-language: Haskell2010
@@ -58,8 +74,8 @@ test-suite nothunks-test
                       -- Additional dependencies
                     , hedgehog       >= 1.0 && < 1.1
                     , random         >= 1.1 && < 1.3
-                    , tasty          >= 1.3 && < 1.4
-                    , tasty-hedgehog >= 1.0 && < 1.1
+                    , tasty          >= 1.3 && < 1.5
+                    , tasty-hedgehog >= 1.0 && < 1.2
 
     hs-source-dirs:   test
     default-language: Haskell2010
