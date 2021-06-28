@@ -577,7 +577,7 @@ checkRef p = testGroup (show (typeRep p)) [
 
     checkRefNF :: Property
     checkRefNF = checkNFClass True $ \k -> do
-        ! ref <- liftIO (newRef x :: IO (ref Int))
+        !ref <- liftIO (newRef x :: IO (ref Int))
         k ref
       where
         x :: Int
@@ -593,7 +593,7 @@ checkRef p = testGroup (show (typeRep p)) [
 
     checkRefNFPure :: Property
     checkRefNFPure = unsafeCheckNF True $ \k -> do
-        ! ref <- liftIO (newRef x :: IO (ref Int))
+        !ref <- liftIO (newRef x :: IO (ref Int))
         k ref
       where
         x :: Int
@@ -609,7 +609,7 @@ checkRef p = testGroup (show (typeRep p)) [
 
     checkRefNFAtomically :: Property
     checkRefNFAtomically = unsafeCheckNFAtomically True $ \k -> do
-        ! ref <- liftIO (newRef x :: IO (ref Int))
+        !ref <- liftIO (newRef x :: IO (ref Int))
         k ref
       where
         x :: Int
