@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE DeriveGeneric       #-}
@@ -649,7 +650,11 @@ unsafeCheckNFAtomically expectedNF k = withTests 1 $ property $ k $ \x -> do
 expectFailure :: Property -> Property
 expectFailure p = withTests 1 $ property $ do
     report <- liftIO $ displayRegion $ \r ->
-                checkNamed r EnableColor (Just "EXPECTED FAILURE") p
+                checkNamed r EnableColor (Just "EXPECTED FAILURE")
+#if MIN_VERSION_hedgehog(1,1,1)
+                Nothing
+#endif
+                p
     case reportStatus report of
       Failed _ ->
         success
