@@ -649,7 +649,7 @@ unsafeCheckNFAtomically expectedNF k = withTests 1 $ property $ k $ \x -> do
 expectFailure :: Property -> Property
 expectFailure p = withTests 1 $ property $ do
     report <- liftIO $ displayRegion $ \r ->
-                checkNamed r EnableColor (Just "EXPECTED FAILURE") p
+                checkNamed r EnableColor (Just "EXPECTED FAILURE") Nothing p
     case reportStatus report of
       Failed _ ->
         success
