@@ -49,6 +49,7 @@ import GHC.TypeLits
 import Data.Foldable (toList)
 import Data.Int
 import Data.IntMap (IntMap)
+import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map (Map)
 import Data.Ratio
@@ -58,7 +59,9 @@ import Data.Time
 import Data.Void (Void)
 import Data.Word
 import GHC.Stack
+#if !MIN_VERSION_base(4,15,0)
 import Numeric.Natural
+#endif
 
 import qualified Control.Concurrent.MVar       as MVar
 import qualified Control.Concurrent.STM.TVar   as TVar
@@ -756,7 +759,7 @@ type family Elem (s :: Symbol) (xs :: [Symbol]) where
 -- This exists to catch mismatches between the arguments to `AllowThunksIn` and
 -- the fields of a record. If any of the symbols is not the name of a field then
 -- this constraint won't be satisfied.
-class HasFields (s :: [Symbol]) (a :: *)
+class HasFields (s :: [Symbol]) (a :: Type)
 instance HasFields '[] a
 instance (HasField x a t, HasFields xs a) => HasFields (x ': xs) a
 

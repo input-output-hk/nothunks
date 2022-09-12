@@ -1,4 +1,4 @@
 packages: nothunks.cabal
 
 package nothunks
-  tests: True 
+  tests: True
