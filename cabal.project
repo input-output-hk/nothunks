@@ -2,3 +2,6 @@ packages: nothunks.cabal
 
 package nothunks
   tests: True
+
+test-show-details: direct
+
