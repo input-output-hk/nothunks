@@ -59,7 +59,8 @@ import Data.Time
 import Data.Void (Void)
 import Data.Word
 import GHC.Stack
-#if !MIN_VERSION_base(4,15,0)
+-- base-4.16 exports 'Natural' from 'GHC.TypeLits'
+#if !MIN_VERSION_base(4,16,0)
 import Numeric.Natural
 #endif
 
