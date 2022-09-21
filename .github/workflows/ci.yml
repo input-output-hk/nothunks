@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ghc: ["8.10.7", "9.2.4"]
+        ghc: ["8.10.7", "9.0.2", "9.2.4", "9.4.2"]
     env:
       CONFIG: "--enable-tests"
     steps:
