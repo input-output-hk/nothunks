@@ -138,7 +138,10 @@ class NoThunks a where
   -- so all that's left is to look at the thunks /inside/ the type. The default
   -- implementation uses GHC Generics to do this.
   wNoThunks :: Context -> a -> IO (Maybe ThunkInfo)
-  default wNoThunks :: (Generic a, GWNoThunks '[] (Rep a))
+  default wNoThunks :: ( Generic a
+                       , GWNoThunks '[] (Rep a)
+                       , GCheckEdgeCase a (Rep a)
+                       )
                     => Context -> a -> IO (Maybe ThunkInfo)
   wNoThunks ctxt x = gwNoThunks (Proxy @'[]) ctxt $ from x
 
@@ -426,6 +429,61 @@ instance GWNoThunks a U1 where
 
 instance GWNoThunks a V1 where
   gwNoThunks _a _ctxt _ = error "unreachable gwNoThunks @V1"
+
+{-------------------------------------------------------------------------------
+  Check for the edge case of single-constructor-single-field types
+
+  The generic 'from' function for such types looks something like
+
+  > from t = case t of MyType x -> M1 (K1 x)
+
+  Since both 'M1' and 'K1' are newtypes, this is really just
+
+  > from t = case t of MyType x -> x
+
+  Unfortunately, we are now between a rock and a hard place. Clearly, we cannot
+  check whether that expression itself is in WHNF, because it obviously isn't.
+  But neither can we reduce it to WHNF without reducing @x@ /itself/ to WHNF,
+  which is also not good: @nothunks@ should not result in any values being
+  forced.
+
+  This would only be solvable if we had a different generic representation for
+  types like this. Since we cannot change that, we instead do the next best
+  thing and detect when the situation arises, and give an informative
+  error message instead.
+-------------------------------------------------------------------------------}
+
+class GCheckEdgeCase (a :: Type) (f :: Type -> Type) where
+
+instance GCheckEdgeCase a f => GCheckEdgeCase a (M1 D c f)
+
+instance GCheckEdgeCase a (f :+: g)
+instance GCheckEdgeCase a V1
+
+instance GCheckEdgeCaseC a constr f
+      => GCheckEdgeCase a (M1 C ('MetaCons constr _fixity _isRecord) f)
+
+class GCheckEdgeCaseC (a :: Type) (constr :: Symbol) (f :: Type -> Type) where
+
+instance GCheckEdgeCaseC a constr f => GCheckEdgeCaseC a constr (M1 S i f)
+
+instance GCheckEdgeCaseC a constr (f :*: g)
+instance GCheckEdgeCaseC a constr U1
+
+instance
+    TypeError (
+            'Text "Cannot derive NoThunks for " ':<>: 'ShowType a
+      ':$$: 'Text "Due to a limitation of GHC.Generics, NoThunks cannot be"
+      ':$$: 'Text "derived for single-constructor-single-field types."
+      ':$$: 'Text "Consider writing it by hand, perhaps like this: "
+      ':$$: 'Text "  instance NoThunks "
+                    ':<>: 'ShowType a
+                    ':<>: 'Text " where"
+      ':$$: 'Text "    wNoThunks ctxt ("
+                    ':<>: 'Text constr
+                    ':<>: 'Text " x) = noThunks ctxt x"
+      )
+ => GCheckEdgeCaseC a constr (K1 i c)
 
 {-------------------------------------------------------------------------------
   Skip fields with allowed thunks
