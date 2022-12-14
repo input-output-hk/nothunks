@@ -140,12 +140,7 @@ class NoThunks a where
   wNoThunks :: Context -> a -> IO (Maybe ThunkInfo)
   default wNoThunks :: (Generic a, GWNoThunks '[] (Rep a))
                     => Context -> a -> IO (Maybe ThunkInfo)
-  wNoThunks ctxt x = gwNoThunks (Proxy @'[]) ctxt fp
-    where
-      -- Force the result of @from@ to WHNF: we are not interested in thunks
-      -- that arise from the translation to the generic representation.
-      fp :: Rep a x
-      !fp = from x
+  wNoThunks ctxt x = gwNoThunks (Proxy @'[]) ctxt $ from x
 
   -- | Show type @a@ (to add to the context)
   --
@@ -368,7 +363,21 @@ inspectHeap ctxt x = do
 class GWNoThunks (a :: [Symbol]) f where
   -- | Check that the argument does not contain any unexpected thunks
   --
-  -- Precondition: the argument is in WHNF.
+  -- We do /NOT/ require that the argument @f x@ is in WHNF, but neither will
+  -- we report any thunks that arise from the translation to the generic
+  -- representation itself.
+  --
+  -- o @M1@ and @K1@ are newtypes, so matching on them here changes nothing.
+  -- o For the case of @K1@ specifically, we call back to `noThunks` proper,
+  --   without forcing anything first.
+  -- o For @(:*:)@ and @L1@/@R1@, we pattern match on the constructor of the
+  --   generic datatype without first checking for thunks.
+  -- o @U1@ is used for constructors without arguments; since `gwNoThunks` is
+  --   only called from `wNoThunks`, which has the precondition that the
+  --   argument is in WHNF, we have nothing to check here.
+  -- o Similarly, @V1@ is used for empty types; again, since it is called by
+  --   wNoThunks, with precondition that the argument is in WHNF, the case for
+  --   @V1@ is actually unreachable.
   gwNoThunks :: proxy a -> Context -> f x -> IO (Maybe ThunkInfo)
 
 instance GWNoThunks a f => GWNoThunks a (D1 c f) where
@@ -416,8 +425,6 @@ instance GWNoThunks a U1 where
   gwNoThunks _a _ctxt U1 = return Nothing
 
 instance GWNoThunks a V1 where
-  -- By assumption, the argument is already in WHNF. Since every inhabitant of
-  -- this type is bottom, this code is therefore unreachable.
   gwNoThunks _a _ctxt _ = error "unreachable gwNoThunks @V1"
 
 {-------------------------------------------------------------------------------
