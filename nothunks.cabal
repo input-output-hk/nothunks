@@ -24,14 +24,17 @@ source-repository head
 flag bytestring
   description: Provide instances for bytestring
   default: True
+  manual: True
 
 flag text
   description: Provide instances for text
   default: True
+  manual: True
 
 flag vector
   description: Provide instances for vector
   default: True
+  manual: True
 
 library
     exposed-modules:  NoThunks.Class
