@@ -193,7 +193,7 @@ type Context = [String]
 -- to get source spans from closures. If we could take advantage of that, we
 -- could not only show the type of the unexpected thunk, but also where it got
 -- allocated.
-data ThunkInfo = ThunkInfo {
+newtype ThunkInfo = ThunkInfo {
       -- The @Context@ argument is intended to give a clue to add debugging.
       -- For example, suppose we have something of type @(Int, [Int])@. The
       -- various contexts we might get are
