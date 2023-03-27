@@ -202,8 +202,10 @@ data ThunkInfo = ThunkInfo {
       -- > ---------------------------------------------------------------------
       -- > ["(,)"]                  the pair itself
       -- > ["Int","(,)"]            the Int in the pair
-      -- > ["[]","(,)"]             the [Int] in the pair
-      -- > ["Int","[]","(,)"]       an Int in the [Int] in the pair
+      -- > ["List","(,)"]           the [Int] in the pair
+      -- > ["Int","List","(,)"]     an Int in the [Int] in the pair
+      --
+      -- Note: prior to `ghc-9.6` a list was indicated by `[]`.
       thunkContext :: Context
     }
   deriving (Show)
