@@ -12,7 +12,7 @@ license-file:       LICENSE
 bug-reports:        https://github.com/input-output-hk/nothunks
 author:             IOHK
 maintainer:         operations@iohk.io
-copyright:          2018-2021 IOHK
+copyright:          2018-2023 Input Output Global Inc (IOG)
 category:           Development
 extra-source-files: CHANGELOG.md
 tested-with:        GHC== { 8.10.7, 9.0.2, 9.2.5, 9.4.4, 9.6.1 }
