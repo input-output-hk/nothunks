@@ -1,5 +1,11 @@
 # Revision history for nothunks
 
+## 0.1.4 -- 2023-03-27
+
+* Made cabal flags manual.
+* Support ghc-9.2 to 9.6.
+* `ThunkInfo` is a newtype.
+
 ## 0.1.3 -- 2021-06-28
 
 * Fix tests on ghc-9.0.1

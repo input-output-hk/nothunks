@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE DeriveGeneric       #-}
@@ -241,7 +242,11 @@ instance FromModel a => FromModel [a] where
       ListNil        -> IsNF
       ListCons x xs' -> constrNF [modelIsNF ctxt' x, modelIsNF ctxt xs']
     where
+#if MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+      ctxt' = "List" : ctxt
+#else
       ctxt' = "[]" : ctxt
+#endif
 
   fromModel (ListThunk xs)  k = fromModel xs $ \xs' -> k (if ack 3 3 > 0 then xs' else xs')
   fromModel ListNil         k = k []

@@ -193,7 +193,7 @@ type Context = [String]
 -- to get source spans from closures. If we could take advantage of that, we
 -- could not only show the type of the unexpected thunk, but also where it got
 -- allocated.
-data ThunkInfo = ThunkInfo {
+newtype ThunkInfo = ThunkInfo {
       -- The @Context@ argument is intended to give a clue to add debugging.
       -- For example, suppose we have something of type @(Int, [Int])@. The
       -- various contexts we might get are
@@ -202,8 +202,10 @@ data ThunkInfo = ThunkInfo {
       -- > ---------------------------------------------------------------------
       -- > ["(,)"]                  the pair itself
       -- > ["Int","(,)"]            the Int in the pair
-      -- > ["[]","(,)"]             the [Int] in the pair
-      -- > ["Int","[]","(,)"]       an Int in the [Int] in the pair
+      -- > ["List","(,)"]           the [Int] in the pair
+      -- > ["Int","List","(,)"]     an Int in the [Int] in the pair
+      --
+      -- Note: prior to `ghc-9.6` a list was indicated by `[]`.
       thunkContext :: Context
     }
   deriving (Show)
