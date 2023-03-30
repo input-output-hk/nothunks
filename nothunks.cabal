@@ -7,8 +7,9 @@ description:        Long lived application data typically should not contain
                     unexpected thunks, which can then be used in assertions.
                     This can be invaluable in avoiding memory leaks, or tracking
                     down existing ones.
-license:            MIT
-license-file:       LICENSE
+license:            Apache-2.0
+license-files:      LICENSE
+                    NOTICE
 bug-reports:        https://github.com/input-output-hk/nothunks
 author:             IOHK
 maintainer:         operations@iohk.io
