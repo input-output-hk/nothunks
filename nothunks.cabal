@@ -7,14 +7,15 @@ description:        Long lived application data typically should not contain
                     unexpected thunks, which can then be used in assertions.
                     This can be invaluable in avoiding memory leaks, or tracking
                     down existing ones.
-license:            MIT
-license-file:       LICENSE
+license:            Apache-2.0
+license-files:      LICENSE
+                    NOTICE
 bug-reports:        https://github.com/input-output-hk/nothunks
-author:             IOHK
-maintainer:         operations@iohk.io
-copyright:          2018-2021 IOHK
+author:             IOG
+maintainer:         Marcin Szamotulski <coot@coot.me>
+copyright:          2018-2023 Input Output Global Inc (IOG)
 category:           Development
-extra-source-files: CHANGELOG.md
+extra-doc-files:    CHANGELOG.md
 tested-with:        GHC== { 8.10.7, 9.0.2, 9.2.5, 9.4.4, 9.6.1 }
 
 source-repository head
