@@ -427,10 +427,12 @@ instance GWNoThunks a V1 where
 -------------------------------------------------------------------------------}
 
 -- | If @fieldName@ is allowed to contain thunks, skip it.
-instance GWRecordField f (Elem fieldName a)
+instance ( GWRecordField f (Elem fieldName a)
+         , KnownSymbol fieldName
+         )
       => GWNoThunks a (S1 ('MetaSel ('Just fieldName) su ss ds) f) where
   gwNoThunks _ ctxt (M1 fp) =
-      gwRecordField (Proxy @(Elem fieldName a)) ctxt fp
+      gwRecordField (Proxy @(Elem fieldName a)) (symbolVal @fieldName Proxy : ctxt) fp
 
 class GWRecordField f (b :: Bool) where
   gwRecordField :: proxy b -> Context -> f x -> IO (Maybe ThunkInfo)
