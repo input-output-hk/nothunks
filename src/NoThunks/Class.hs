@@ -43,6 +43,7 @@ import GHC.Exts.Heap
 import GHC.Generics
 import GHC.Records
 import GHC.TypeLits
+import GHC.Conc.Sync (ThreadId (..))
 
 -- For instances
 
@@ -641,6 +642,8 @@ instance NoThunks a => NoThunks (Maybe a)
 instance NoThunks a => NoThunks (NonEmpty a)
 
 instance (NoThunks a, NoThunks b) => NoThunks (Either a b)
+
+deriving via InspectHeap ThreadId instance NoThunks ThreadId
 
 {-------------------------------------------------------------------------------
   Spine-strict container types

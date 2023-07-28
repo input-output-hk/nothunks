@@ -1,5 +1,9 @@
 # Revision history for nothunks
 
+## next version
+
+* `NoThunks ThreadId` instance
+
 ## 0.1.4 -- 2023-03-27
 
 * Made cabal flags manual.
