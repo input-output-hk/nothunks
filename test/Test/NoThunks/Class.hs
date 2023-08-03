@@ -333,13 +333,13 @@ instance FromModel (AllowThunksIn '["field1"] Record) where
 
   modelIsNF ctxt = \case
       RecordThunk _     -> NotWHNF ctxt'
-      RecordDefined a b -> constrNF [modelIsNF ctxt' a, modelIsNF ctxt' b]
+      RecordDefined a b -> constrNF [modelIsNF ("field1" : ctxt') a, modelIsNF ("field2" : ctxt') b]
     where
       ctxt' = "Record" : ctxt
 
   modelUnexpected ctxt = \case
       RecordThunk   _   -> Just ctxt'
-      RecordDefined _ y -> modelUnexpected ctxt' y
+      RecordDefined _ y -> modelUnexpected ("field2" : ctxt') y
     where
       ctxt' = "Record" : ctxt
 

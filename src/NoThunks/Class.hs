@@ -43,6 +43,7 @@ import GHC.Exts.Heap
 import GHC.Generics
 import GHC.Records
 import GHC.TypeLits
+import GHC.Conc.Sync (ThreadId (..))
 
 -- For instances
 
@@ -427,10 +428,12 @@ instance GWNoThunks a V1 where
 -------------------------------------------------------------------------------}
 
 -- | If @fieldName@ is allowed to contain thunks, skip it.
-instance GWRecordField f (Elem fieldName a)
+instance ( GWRecordField f (Elem fieldName a)
+         , KnownSymbol fieldName
+         )
       => GWNoThunks a (S1 ('MetaSel ('Just fieldName) su ss ds) f) where
   gwNoThunks _ ctxt (M1 fp) =
-      gwRecordField (Proxy @(Elem fieldName a)) ctxt fp
+      gwRecordField (Proxy @(Elem fieldName a)) (symbolVal @fieldName Proxy : ctxt) fp
 
 class GWRecordField f (b :: Bool) where
   gwRecordField :: proxy b -> Context -> f x -> IO (Maybe ThunkInfo)
@@ -639,6 +642,8 @@ instance NoThunks a => NoThunks (Maybe a)
 instance NoThunks a => NoThunks (NonEmpty a)
 
 instance (NoThunks a, NoThunks b) => NoThunks (Either a b)
+
+deriving via InspectHeap ThreadId instance NoThunks ThreadId
 
 {-------------------------------------------------------------------------------
   Spine-strict container types
