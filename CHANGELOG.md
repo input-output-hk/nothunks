@@ -3,6 +3,7 @@
 ## next version
 
 * `NoThunks ThreadId` instance
+* `NoThunks Identity` instance
 
 ## 0.1.4 -- 2023-03-27
 
