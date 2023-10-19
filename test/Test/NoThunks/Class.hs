@@ -54,7 +54,9 @@ import Hedgehog.Internal.Config (UseColor (..))
 import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
 
-import NoThunks.Class
+import NoThunks.Class.Internal
+import NoThunks.Class.Staged
+import NoThunks.Class.Staged.Instances
 
 {-------------------------------------------------------------------------------
   Top-level
@@ -72,6 +74,7 @@ tests = testGroup "NoThunks.Class" [
     , testGroup "InspectHeap" [
           testProperty "Int"        $                 testWithModel agreeOnNF $ Proxy @(InspectHeap Int)
         , testProperty "IntInt"     $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, Int))
+        , testProperty "IntIntInt"     $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, Int, Int))
         , testProperty "ListInt"    $                 testWithModel agreeOnNF $ Proxy @(InspectHeap [Int])
         , testProperty "IntListInt" $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, [Int]))
         , testProperty "SeqInt"     $ expectFailure $ testWithModel agreeOnNF $ Proxy @(InspectHeap (Seq Int))
@@ -79,6 +82,7 @@ tests = testGroup "NoThunks.Class" [
     , testGroup "Model" [
           testProperty "Int"           $ testWithModel agreeOnContext $ Proxy @Int
         , testProperty "IntInt"        $ testWithModel agreeOnContext $ Proxy @(Int, Int)
+        , testProperty "IntIntInt"        $ testWithModel agreeOnContext $ Proxy @(Int, Int, Int)
         , testProperty "ListInt"       $ testWithModel agreeOnContext $ Proxy @[Int]
         , testProperty "IntListInt"    $ testWithModel agreeOnContext $ Proxy @(Int, [Int])
         , testProperty "SeqInt"        $ testWithModel agreeOnContext $ Proxy @(Seq Int)
@@ -226,6 +230,32 @@ instance (FromModel a, FromModel b) => FromModel (a, b) where
       ]
 
 deriving instance (Show (Model a), Show (Model b)) => Show (Model (a, b))
+
+
+instance (FromModel a, FromModel b, FromModel c) => FromModel (a, b, c) where
+  data Model (a, b, c) =
+      TripThunk (Model (a, b, c))
+    | TripDefined (Model a) (Model b) (Model c)
+
+  modelIsNF ctxt = \case
+      TripThunk _     -> NotWHNF ctxt'
+      TripDefined a b c -> constrNF [modelIsNF ctxt' a, modelIsNF ctxt' b, modelIsNF ctxt' c]
+    where
+      ctxt' = "(,,)" : ctxt
+
+  fromModel (TripThunk p)     k = fromModel p $ \p' -> k (if ack 3 3 > 0 then p' else p')
+  fromModel (TripDefined a b c) k = fromModel a $ \a' ->
+                                  fromModel b $ \b' ->
+                                  fromModel c $ \c' ->
+                                  k (a', b', c')
+
+  genModel = Gen.choice [
+        TripDefined <$> genModel <*> genModel <*> genModel
+      , TripThunk <$> genModel
+      ]
+
+deriving instance (Show (Model a), Show (Model b), Show (Model c)) => Show (Model (a, b, c))
+
 
 {-------------------------------------------------------------------------------
   Lists

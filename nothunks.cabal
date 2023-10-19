@@ -39,11 +39,19 @@ flag vector
 
 library
     exposed-modules:  NoThunks.Class
+                      NoThunks.Class.Staged
+                      NoThunks.Class.Staged.Instances
+                      NoThunks.Class.Internal
+                      NoThunks.Class.Instances
 
     build-depends:    base       >= 4.12 && < 5
                     , containers >= 0.5  && < 0.7
                     , stm        >= 2.5  && < 2.6
                     , time       >= 1.5  && < 1.13
+                    , staged-sop
+                    , sop-core
+                    , template-haskell
+                    , generics-sop
 
                       -- Whatever is bundled with ghc
                     , ghc-heap
