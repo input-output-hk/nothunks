@@ -8,3 +8,18 @@ test-show-details: direct
 -- TODO: remove once hedgehog is compatible with ghc-9.6
 if impl(ghc >= 9.6)
   allow-newer: hedgehog:template-haskell
+
+if impl(ghc >= 9.8)
+  allow-newer:
+    text,
+    hedgehog,
+    deepseq
+
+source-repository-package
+  type: git
+  location: https://github.com/well-typed/generics-sop
+  tag: 8dc8e58d92b81be7a06a96d0d06d9b2f4e862463
+  subdir:
+    sop-core
+    generics-sop
+    staged-sop
