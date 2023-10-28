@@ -4,7 +4,3 @@ package nothunks
   tests: True
 
 test-show-details: direct
-
--- TODO: remove once hedgehog is compatible with ghc-9.6
-if impl(ghc >= 9.6)
-  allow-newer: hedgehog:template-haskell

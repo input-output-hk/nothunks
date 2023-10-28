@@ -213,7 +213,11 @@ instance (FromModel a, FromModel b) => FromModel (a, b) where
       PairThunk _     -> NotWHNF ctxt'
       PairDefined a b -> constrNF [modelIsNF ctxt' a, modelIsNF ctxt' b]
     where
+#if MIN_VERSION_GLASGOW_HASKELL(9,8,0,0)
+      ctxt' = "Tuple2" : ctxt
+#else
       ctxt' = "(,)" : ctxt
+#endif
 
   fromModel (PairThunk p)     k = fromModel p $ \p' -> k (if ack 3 3 > 0 then p' else p')
   fromModel (PairDefined a b) k = fromModel a $ \a' ->
