@@ -2,7 +2,10 @@
 
 ## next version
 
-* `NoThunks ThreadId` instance
+* `NoThunks ThreadId` instance.
+* Fix tests on ghc 9.8.
+  Andreas Abel <andreas.abel@gu.se>
+* Tested with ghc 8.10 to 9.8.
 
 ## 0.1.4 -- 2023-03-27
 
