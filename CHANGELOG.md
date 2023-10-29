@@ -2,6 +2,8 @@
 
 ## next version
 
+## 0.1.5 -- 2023-10-29
+
 * `NoThunks ThreadId` instance.
 * `NoThunks Identity` instance
 * Fix tests on ghc 9.8.
