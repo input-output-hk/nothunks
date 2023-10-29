@@ -12,29 +12,29 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ghc: ["8.10.7", "9.0.2", "9.2.5", "9.4.4", "9.6.1"]
-    env:
-      CONFIG: "--enable-tests"
+        ghc: ["8.10", "9.0", "9.2", "9.4", "9.6", "9.8"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: "Setup haskell"
-        uses: haskell/actions/setup@v2
+        uses: haskell-actions/setup@v2
         id: setup-haskell
         with:
           ghc-version: ${{ matrix.ghc }}
-          cabal-version: 3.8.1.0
-      - run: cabal update
-      - run: cabal freeze $CONFIG
-      - uses: actions/cache@v2
+          cabal-version: latest
+          cabal-update:  true
+      - run: |
+          cabal configure --enable-tests --disable-documentation
+          cabal build --dry-run
+        # The latter generates dist-newstyle/cache/plan.json which serves as cache key.
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
-          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
+          key:  ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
-            ${{ runner.os }}-${{ matrix.ghc }}-
-      - run: cabal build $CONFIG
-      - run: cabal test $CONFIG
-      - run: cabal haddock $CONFIG
+                ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-
+      - run: cabal build
+      - run: cabal test
+      - run: cabal haddock
       - run: cabal sdist
 
   check-changelogs:
@@ -48,7 +48,7 @@ jobs:
     - name: Install dependencies
       run: sudo apt install -y fd-find
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: git fetch
       run: git fetch origin master:master
