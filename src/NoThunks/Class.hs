@@ -48,6 +48,7 @@ import GHC.Conc.Sync (ThreadId (..))
 -- For instances
 
 import Data.Foldable (toList)
+import Data.Functor.Identity (Identity)
 import Data.Int
 import Data.IntMap (IntMap)
 import Data.Kind (Type)
@@ -638,6 +639,7 @@ instance NoThunks Void
 instance NoThunks ()
 
 instance NoThunks a => NoThunks [a]
+instance NoThunks a => NoThunks (Identity a)
 instance NoThunks a => NoThunks (Maybe a)
 instance NoThunks a => NoThunks (NonEmpty a)
 
