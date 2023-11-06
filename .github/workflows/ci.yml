@@ -1,4 +1,4 @@
-name: CI
+name: Tests
 on:
   push:
     branches:
@@ -37,22 +37,3 @@ jobs:
       - run: cabal test
       - run: cabal haddock
       - run: cabal sdist
-
-  check-changelogs:
-    name: Check changelogs
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-    - name: Install dependencies
-      run: sudo apt install -y fd-find
-
-    - uses: actions/checkout@v4
-
-    - name: git fetch
-      run: git fetch origin master:master
-
-    - name: Check changelogs
-      run: ./scripts/check-changelogs.sh
