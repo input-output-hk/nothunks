@@ -1,6 +1,7 @@
 # nothunks
 
-[![GitHub CI](https://github.com/input-output-hk/nothunks/workflows/CI/badge.svg)](https://github.com/input-output-hk/nothunks/actions)
+[![CI Tests](https://github.com/input-output-hk/nothunks/actions/workflows/ci.yml/badge.svg)](https://github.com/input-output-hk/nothunks/actions/workflows/ci.yml)
+
 
 Long lived application data typically should not contain any thunks. This
 library can be used to examine values for unexpected thunks, which can then be
