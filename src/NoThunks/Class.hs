@@ -383,7 +383,7 @@ instance GWNoThunks a f => GWNoThunks a (D1 c f) where
 instance GWNoThunks a f => GWNoThunks a (C1 c f) where
   gwNoThunks a ctxt (M1 fp) = gwNoThunks a ctxt fp
 
-instance GWNoThunks a f => GWNoThunks a (S1 ('MetaSel ('Nothing) su ss ds) f) where
+instance GWNoThunks a f => GWNoThunks a (S1 ('MetaSel 'Nothing su ss ds) f) where
   gwNoThunks a ctxt (M1 fp) = gwNoThunks a ctxt fp
 
 instance (GWNoThunks a f, GWNoThunks a g) => GWNoThunks a (f :*: g) where
