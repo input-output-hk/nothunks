@@ -72,6 +72,8 @@ import qualified Data.IntMap                   as IntMap
 import qualified Data.IORef                    as IORef
 import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
+import qualified Data.Monoid                   as Monoid
+import qualified Data.Semigroup                as Semigroup
 
 #ifdef MIN_VERSION_bytestring
 import Data.ByteString.Short (ShortByteString)
@@ -478,6 +480,31 @@ deriving via OnlyCheckWhnf Word8  instance NoThunks Word8
 deriving via OnlyCheckWhnf Word16 instance NoThunks Word16
 deriving via OnlyCheckWhnf Word32 instance NoThunks Word32
 deriving via OnlyCheckWhnf Word64 instance NoThunks Word64
+
+{-------------------------------------------------------------------------------
+  Semigroups
+-------------------------------------------------------------------------------}
+
+deriving via a instance NoThunks a => NoThunks (Semigroup.Min a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.Max a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.First a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.Last a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.Dual a)
+deriving via Bool instance NoThunks Semigroup.All
+deriving via Bool instance NoThunks Semigroup.Any
+deriving via a instance NoThunks a => NoThunks (Semigroup.Sum a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.Product a) 
+deriving via a instance NoThunks a => NoThunks (Semigroup.WrappedMonoid a) 
+instance (NoThunks a, NoThunks b) => NoThunks (Semigroup.Arg a b) 
+
+{-------------------------------------------------------------------------------
+  Monoids
+-------------------------------------------------------------------------------}
+
+deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.First a) 
+deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.Last a) 
+deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Alt f a) 
+deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a) 
 
 {-------------------------------------------------------------------------------
   Mutable Vars

@@ -2,6 +2,8 @@
 
 ## next version
 
+* `NoThunks` instances for `Data.Semigroup` and `Data.Monoid` newtype wrappers.
+
 ## 0.1.5 -- 2023-10-29
 
 * `NoThunks ThreadId` instance.
