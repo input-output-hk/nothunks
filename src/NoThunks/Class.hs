@@ -58,6 +58,9 @@ import Data.Ratio
 import Data.Sequence (Seq)
 import Data.Set (Set)
 import Data.Time
+#if MIN_VERSION_base(4,16,0)
+import Data.Tuple (Solo (..))
+#endif
 import Data.Void (Void)
 import Data.Word
 import GHC.Stack
@@ -505,6 +508,20 @@ deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.First a)
 deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.Last a) 
 deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Alt f a) 
 deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a) 
+
+{-------------------------------------------------------------------------------
+  Solo
+-------------------------------------------------------------------------------}
+
+#if MIN_VERSION_base(4,16,0)
+-- GHC-9.2
+instance NoThunks a => NoThunks (Solo a) where
+    wNoThunks ctx (Solo a) = wNoThunks ("Solo" : ctx) a
+#elif MIN_VERSION_base(4,17,0)
+-- GHC-9.4 and newer
+instance NoThunks a => NoThunks (Solo a) where
+    wNoThunks ctx (MkSolo a) = wNoThunks ("Solo" : ctx) a
+#endif
 
 {-------------------------------------------------------------------------------
   Mutable Vars
