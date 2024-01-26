@@ -536,14 +536,14 @@ deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a)
   Solo
 -------------------------------------------------------------------------------}
 
-#if MIN_VERSION_base(4,16,0)
+#if MIN_VERSION_base(4,18,0)
+-- GHC-9.6 and newer
+instance NoThunks a => NoThunks (Solo a) where
+    wNoThunks ctx (MkSolo a) = wNoThunks ("Solo" : ctx) a
+#elif MIN_VERSION_base(4,16,0)
 -- GHC-9.2
 instance NoThunks a => NoThunks (Solo a) where
     wNoThunks ctx (Solo a) = wNoThunks ("Solo" : ctx) a
-#elif MIN_VERSION_base(4,17,0)
--- GHC-9.4 and newer
-instance NoThunks a => NoThunks (Solo a) where
-    wNoThunks ctx (MkSolo a) = wNoThunks ("Solo" : ctx) a
 #endif
 
 {-------------------------------------------------------------------------------
