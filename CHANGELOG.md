@@ -2,6 +2,9 @@
 
 ## next version
 
+* Use `whereFrom` to get source information, which is avialable when the source
+  is compiled with `GHC-9.2` (or newer) and with `-finfo-table-map` (and even
+  more accurate when `-fdistinct-constructor-table` is passed).
 * `NoThunks` instance for `Data.Tuple.Solo`.
 * `NoThunks` instances for `Data.Semigroup` and `Data.Monoid` newtype wrappers.
 

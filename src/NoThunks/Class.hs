@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
@@ -67,6 +68,10 @@ import GHC.Stack
 -- base-4.16 exports 'Natural' from 'GHC.TypeLits'
 #if !MIN_VERSION_base(4,16,0)
 import Numeric.Natural
+#endif
+
+#if MIN_VERSION_base(4,18,0)
+import GHC.InfoProv
 #endif
 
 import qualified Control.Concurrent.MVar       as MVar
@@ -132,12 +137,11 @@ class NoThunks a where
   noThunks :: Context -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
       isThunk <- checkIsThunk x
+      c <- getThunkContext (showTypeOf (Proxy @a)) x
+      let ctxt' = c : ctxt
       if isThunk
         then return $ Just ThunkInfo { thunkContext = ctxt' }
         else wNoThunks ctxt' x
-    where
-      ctxt' :: Context
-      ctxt' = showTypeOf (Proxy @a) : ctxt
 
   -- | Check that the argument is in normal form, assuming it is in WHNF.
   --
@@ -213,9 +217,27 @@ newtype ThunkInfo = ThunkInfo {
       -- > ["Int","List","(,)"]     an Int in the [Int] in the pair
       --
       -- Note: prior to `ghc-9.6` a list was indicated by `[]`.
-      thunkContext :: Context
+      --
+      -- Note: if compiled with `-finfo-table-map` (and
+      -- `-fdistinct-constructor-tables`) the context will contains source
+      -- location if available from the RTS.
+      thunkContext  :: Context
     }
   deriving (Show)
+
+getThunkContext :: String -> a -> IO String
+#if MIN_VERSION_base(4,18,0)
+getThunkContext c a = maybe c infoProvContext <$> whereFrom a
+
+infoProvContext :: InfoProv -> String
+infoProvContext InfoProv { ipSrcFile, ipSrcSpan,
+                           ipLabel, ipTyDesc } =
+       ipLabel ++ " :: " ++ ipTyDesc
+    ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
+#else
+getThunkContext c _ = return c
+#endif
+
 
 {-# NOINLINE unsafeNoThunks #-}
 -- | Call 'noThunks' in a pure context (relies on 'unsafePerformIO').
@@ -362,8 +384,9 @@ instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
 inspectHeap :: Context -> a -> IO (Maybe ThunkInfo)
 inspectHeap ctxt x = do
     containsThunks <- checkContainsThunks x
+    c <- getThunkContext "..." x
     return $ if containsThunks
-               then Just $ ThunkInfo { thunkContext = "..." : ctxt }
+               then Just $ ThunkInfo { thunkContext = c : ctxt }
                else Nothing
 
 {-------------------------------------------------------------------------------
@@ -513,14 +536,14 @@ deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a)
   Solo
 -------------------------------------------------------------------------------}
 
-#if MIN_VERSION_base(4,16,0)
+#if MIN_VERSION_base(4,18,0)
+-- GHC-9.6 and newer
+instance NoThunks a => NoThunks (Solo a) where
+    wNoThunks ctx (MkSolo a) = wNoThunks ("Solo" : ctx) a
+#elif MIN_VERSION_base(4,16,0)
 -- GHC-9.2
 instance NoThunks a => NoThunks (Solo a) where
     wNoThunks ctx (Solo a) = wNoThunks ("Solo" : ctx) a
-#elif MIN_VERSION_base(4,17,0)
--- GHC-9.4 and newer
-instance NoThunks a => NoThunks (Solo a) where
-    wNoThunks ctx (MkSolo a) = wNoThunks ("Solo" : ctx) a
 #endif
 
 {-------------------------------------------------------------------------------
