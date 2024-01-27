@@ -555,8 +555,8 @@ deriving instance Show (Model a) => Show (Model (InspectHeap a))
 
 {-# NOINLINE checkNF #-}
 checkNF :: Bool -> ((a -> PropertyT IO ()) -> PropertyT IO ()) -> Property
-checkNF expectedNF k = withTests 1 $ property $ k $ \x -> do
-    nf <- liftIO $ noThunks [] (InspectHeapNamed @"a" x)
+checkNF expectedNF k = withTests 1 $ property $ k $ \a -> do
+    nf <- liftIO $ noThunks [] (InspectHeapNamed @"a" a)
     isNothing nf === expectedNF
 
 {-# NOINLINE sanityCheckIntNotNF #-}
