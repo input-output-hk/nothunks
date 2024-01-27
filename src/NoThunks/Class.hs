@@ -20,6 +20,7 @@ module NoThunks.Class (
     NoThunks(..)
   , ThunkInfo(..)
   , Context
+  , Info
   , unsafeNoThunks
     -- * Helpers for defining instances
   , allNoThunks
@@ -129,18 +130,19 @@ class NoThunks a where
   -- reports the /unexpected/ thunks.
   --
   -- The default implementation of 'noThunks' checks that the argument is in
-  -- WHNF, and if so, adds the type into the context (using 'showTypeOf'), and
-  -- calls 'wNoThunks'. See 'ThunkInfo' for a detailed discussion of the type
-  -- context.
+  -- WHNF, and if so, adds the type into the context (using 'showTypeOf' or
+  -- 'whereFrom' if available), and calls 'wNoThunks'. See 'ThunkInfo' for
+  -- a detailed discussion of the type context.
+  -- 
   --
   -- See also discussion of caveats listed for 'checkContainsThunks'.
   noThunks :: Context -> a -> IO (Maybe ThunkInfo)
   noThunks ctxt x = do
       isThunk <- checkIsThunk x
-      c <- getThunkContext (showTypeOf (Proxy @a)) x
-      let ctxt' = c : ctxt
+      let ctxt' = showTypeOf (Proxy @a) : ctxt
+      thunkInfo <- getThunkInfo ctxt' x
       if isThunk
-        then return $ Just ThunkInfo { thunkContext = ctxt' }
+        then return $ Just thunkInfo
         else wNoThunks ctxt' x
 
   -- | Check that the argument is in normal form, assuming it is in WHNF.
@@ -194,48 +196,51 @@ class NoThunks a where
 -- @Int@ which was a thunk.
 type Context = [String]
 
+-- | Binding name, type and location information about the thunk, e.g.
+--
+-- > fromModel :: Int @ test/Test/NoThunks/Class.hs:198:53-84
+--
+type Info = String
+
 {-------------------------------------------------------------------------------
   Results of the check
 -------------------------------------------------------------------------------}
 
 -- | Information about unexpected thunks
 --
--- TODO: The ghc-debug work by Matthew Pickering includes some work that allows
--- to get source spans from closures. If we could take advantage of that, we
--- could not only show the type of the unexpected thunk, but also where it got
--- allocated.
-newtype ThunkInfo = ThunkInfo {
-      -- The @Context@ argument is intended to give a clue to add debugging.
-      -- For example, suppose we have something of type @(Int, [Int])@. The
-      -- various contexts we might get are
-      --
-      -- > Context                  The thunk is..
-      -- > ---------------------------------------------------------------------
-      -- > ["(,)"]                  the pair itself
-      -- > ["Int","(,)"]            the Int in the pair
-      -- > ["List","(,)"]           the [Int] in the pair
-      -- > ["Int","List","(,)"]     an Int in the [Int] in the pair
-      --
-      -- Note: prior to `ghc-9.6` a list was indicated by `[]`.
-      --
-      -- Note: if compiled with `-finfo-table-map` (and
-      -- `-fdistinct-constructor-tables`) the context will contains source
-      -- location if available from the RTS.
-      thunkContext  :: Context
-    }
-  deriving (Show)
+-- ThunkInfo contains either precise `Info` about the thunk location
+-- or `Context` to make it easier to debug space leaks.  `Info` is available if
+--
+-- * @GHC-9.4@ or newer is used,
+-- * the code is compiled with @-finfo-table-map@ and is improved if
+--   @-fdistinct-constructor-tables@ is used as well.
+--
+-- The @Context@ argument is intended to give a clue to add debugging.
+-- For example, suppose we have something of type @(Int, [Int])@. The
+-- various contexts we might get are
+--
+-- > Context                  The thunk is..
+-- > ---------------------------------------------------------------------
+-- > ["(,)"]                  the pair itself
+-- > ["Int","(,)"]            the Int in the pair
+-- > ["List","(,)"]           the [Int] in the pair
+-- > ["Int","List","(,)"]     an Int in the [Int] in the pair
+--
+-- Note: prior to `ghc-9.6` a list was indicated by `[]`.
+newtype ThunkInfo = ThunkInfo { thunkInfo  :: Either Context Info }
+  deriving Show
 
-getThunkContext :: String -> a -> IO String
+getThunkInfo :: Context -> a -> IO ThunkInfo
 #if MIN_VERSION_base(4,18,0)
-getThunkContext c a = maybe c infoProvContext <$> whereFrom a
-
-infoProvContext :: InfoProv -> String
-infoProvContext InfoProv { ipSrcFile, ipSrcSpan,
-                           ipLabel, ipTyDesc } =
-       ipLabel ++ " :: " ++ ipTyDesc
-    ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
+getThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
+  where
+    fmt :: InfoProv -> Info
+    fmt InfoProv { ipSrcFile, ipSrcSpan,
+                              ipLabel, ipTyDesc } =
+           ipLabel ++ " :: " ++ ipTyDesc
+        ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
 #else
-getThunkContext c _ = return c
+getThunkInfo ctxt _ = return (ThunkInfo (Left ctxt))
 #endif
 
 
@@ -384,9 +389,9 @@ instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
 inspectHeap :: Context -> a -> IO (Maybe ThunkInfo)
 inspectHeap ctxt x = do
     containsThunks <- checkContainsThunks x
-    c <- getThunkContext "..." x
+    thunkInfo <- getThunkInfo ("..." : ctxt) x
     return $ if containsThunks
-               then Just $ ThunkInfo { thunkContext = c : ctxt }
+               then Just thunkInfo
                else Nothing
 
 {-------------------------------------------------------------------------------
