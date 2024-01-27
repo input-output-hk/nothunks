@@ -66,12 +66,14 @@ tests = testGroup "NoThunks.Class" [
           testProperty "IntNotNF" sanityCheckIntNotNF
         , testProperty "IntIsNF"  sanityCheckIntIsNF
         , testProperty "Pair"     sanityCheckPair
+        , testProperty "Sum"      sanityCheckSum
         , testProperty "Fn"       sanityCheckFn
         , testProperty "IO"       sanityCheckIO
         ]
     , testGroup "InspectHeap" [
           testProperty "Int"        $                 testWithModel agreeOnNF $ Proxy @(InspectHeap Int)
         , testProperty "IntInt"     $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, Int))
+        , testProperty "SumInt"     $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Either Int Int))
         , testProperty "ListInt"    $                 testWithModel agreeOnNF $ Proxy @(InspectHeap [Int])
         , testProperty "IntListInt" $                 testWithModel agreeOnNF $ Proxy @(InspectHeap (Int, [Int]))
         , testProperty "SeqInt"     $ expectFailure $ testWithModel agreeOnNF $ Proxy @(InspectHeap (Seq Int))
@@ -79,6 +81,7 @@ tests = testGroup "NoThunks.Class" [
     , testGroup "Model" [
           testProperty "Int"           $ testWithModel agreeOnContext $ Proxy @Int
         , testProperty "IntInt"        $ testWithModel agreeOnContext $ Proxy @(Int, Int)
+        , testProperty "SumInt"        $ testWithModel agreeOnContext $ Proxy @(Either Int Int)
         , testProperty "ListInt"       $ testWithModel agreeOnContext $ Proxy @[Int]
         , testProperty "IntListInt"    $ testWithModel agreeOnContext $ Proxy @(Int, [Int])
         , testProperty "SeqInt"        $ testWithModel agreeOnContext $ Proxy @(Seq Int)
@@ -230,6 +233,35 @@ instance (FromModel a, FromModel b) => FromModel (a, b) where
       ]
 
 deriving instance (Show (Model a), Show (Model b)) => Show (Model (a, b))
+
+{-------------------------------------------------------------------------------
+  Sums
+-------------------------------------------------------------------------------}
+
+instance (FromModel a, FromModel b) => FromModel (Either a b) where
+  data Model (Either a b) =
+      SumThunk (Model (Either a b))
+    | LeftDefined (Model a)
+    | RightDefined (Model b)
+
+  modelIsNF ctxt = \case
+      SumThunk _     -> NotWHNF ctxt'
+      LeftDefined  a -> constrNF [modelIsNF ctxt' a]
+      RightDefined b -> constrNF [modelIsNF ctxt' b]
+    where
+      ctxt' = "Either" : ctxt
+
+  fromModel (SumThunk p)     k = fromModel p $ \p' -> k (if ack 3 3 > 0 then p' else p')
+  fromModel (LeftDefined a)  k = fromModel a $ \a' -> k (Left a')
+  fromModel (RightDefined b) k = fromModel b $ \b' -> k (Right b')
+
+  genModel = Gen.choice [
+      LeftDefined <$> genModel
+    , RightDefined <$> genModel
+    , SumThunk <$> genModel
+    ]
+
+deriving instance (Show (Model a), Show (Model b)) => Show (Model (Either a b))
 
 {-------------------------------------------------------------------------------
   Lists
@@ -547,6 +579,13 @@ sanityCheckPair = checkNF False (\k -> k (if ack 3 3 > 0 then x else x))
   where
     x :: (Int, Bool)
     x = (0, True)
+
+{-# NOINLINE sanityCheckSum #-}
+sanityCheckSum :: Property
+sanityCheckSum = checkNF False (\k -> k (if ack 3 3 > 0 then x else x))
+  where
+    x :: Either Int Int
+    x = Right 0
 
 {-# NOINLINE sanityCheckFn #-}
 sanityCheckFn :: Property
