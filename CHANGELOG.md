@@ -3,7 +3,7 @@
 ## 0.2.0 -- 2024-01-27
 
 * Use `whereFrom` to get source information, which is avialable when the source
-  is compiled with `GHC-9.2` (or newer) and with `-finfo-table-map` (and even
+  is compiled with `GHC-9.4` (or newer) and with `-finfo-table-map` (and even
   more accurate when `-fdistinct-constructor-table` is passed).
   For that reason the `ThunkInfo` type has changed.
 * `NoThunks` instance for `Data.Tuple.Solo`.
