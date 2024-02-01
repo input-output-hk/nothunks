@@ -15,8 +15,6 @@ used and how it works internally.
 
 
 `nothunks` will try to get source information from info tables. For that one
-needs to use `GHC` newer than `9.4` and compile the code with
+needs to use `GHC` `9.2` or newer and compile the code with
 `-finfo-table-map`.  More precise information will be available if
-`-fdistinct-constructor-tables` flag is used as well.  We don't support this
-feature in `GHC-9.2` (although an earlier version of `whereFrom`
-is available in `base`).
+`-fdistinct-constructor-tables` flag is used as well.  

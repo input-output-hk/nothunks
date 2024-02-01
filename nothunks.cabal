@@ -48,6 +48,8 @@ library
                       -- Whatever is bundled with ghc
                     , ghc-heap
 
+    if impl(ghc >= 9.2)
+      build-depends:  wherefrom-compat >= 0.1.1.0 && < 0.2.0.0
     if flag(bytestring)
       build-depends:  bytestring >= 0.10 && < 0.13
     if flag(text)
