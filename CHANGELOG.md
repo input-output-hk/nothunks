@@ -1,9 +1,13 @@
 # Revision history for nothunks
 
+## 0.2.1.0 -- 2024-02-06
+
+* Support `wherefrom` with `GHC-9.2` or newer. (Teo Camarasu, [#49](https://github.com/input-output-hk/nothunks/pull/49))
+
 ## 0.2.0 -- 2024-01-27
 
 * Use `whereFrom` to get source information, which is avialable when the source
-  is compiled with `GHC-9.4` (or newer) and with `-finfo-table-map` (and even
+  is compiled with `GHC-9.6` (or newer) and with `-finfo-table-map` (and even
   more accurate when `-fdistinct-constructor-table` is passed).
   For that reason the `ThunkInfo` type has changed.
 * `NoThunks` instance for `Data.Tuple.Solo`.
