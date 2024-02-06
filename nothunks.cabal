@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               nothunks
-version:            0.2.0
+version:            0.2.1.0
 synopsis:           Examine values for unexpected thunks
 description:        Long lived application data typically should not contain
                     any thunks. This library can be used to examine values for
@@ -49,7 +49,8 @@ library
                     , ghc-heap
 
     if impl(ghc >= 9.2)
-      build-depends:  wherefrom-compat >= 0.1.1.0 && < 0.2.0.0
+      build-depends:  wherefrom-compat ^>= 0.1.1
+
     if flag(bytestring)
       build-depends:  bytestring >= 0.10 && < 0.13
     if flag(text)
