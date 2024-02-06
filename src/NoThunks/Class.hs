@@ -71,8 +71,8 @@ import GHC.Stack
 import Numeric.Natural
 #endif
 
-#if MIN_VERSION_base(4,18,0)
-import GHC.InfoProv
+#if MIN_VERSION_base(4,16,0)
+import GHC.InfoProv.Compat
 #endif
 
 import qualified Control.Concurrent.MVar       as MVar
@@ -231,7 +231,7 @@ newtype ThunkInfo = ThunkInfo { thunkInfo  :: Either Context Info }
   deriving Show
 
 getThunkInfo :: Context -> a -> IO ThunkInfo
-#if MIN_VERSION_base(4,18,0)
+#if MIN_VERSION_base(4,16,0)
 getThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
   where
     fmt :: InfoProv -> Info
