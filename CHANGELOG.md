@@ -2,6 +2,11 @@
 
 ## 0.2.1.0 -- 2024-02-06
 
+* Exported `mkThunkInfo`.
+* Test support of `ghc-9.10`.
+
+## 0.2.1.0 -- 2024-02-06
+
 * Support `wherefrom` with `GHC-9.2` or newer. (Teo Camarasu, [#49](https://github.com/input-output-hk/nothunks/pull/49))
 
 ## 0.2.0 -- 2024-01-27
