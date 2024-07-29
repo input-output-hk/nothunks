@@ -18,6 +18,7 @@ module NoThunks.Class (
     -- * Check a value for unexpected thunks
     NoThunks(..)
   , ThunkInfo(..)
+  , mkThunkInfo
   , Context
   , Info
   , unsafeNoThunks
@@ -139,7 +140,7 @@ class NoThunks a where
   noThunks ctxt x = do
       isThunk <- checkIsThunk x
       let ctxt' = showTypeOf (Proxy @a) : ctxt
-      thunkInfo <- getThunkInfo ctxt' x
+      thunkInfo <- mkThunkInfo ctxt' x
       if isThunk
         then return $ Just thunkInfo
         else wNoThunks ctxt' x
@@ -229,9 +230,12 @@ type Info = String
 newtype ThunkInfo = ThunkInfo { thunkInfo  :: Either Context Info }
   deriving Show
 
-getThunkInfo :: Context -> a -> IO ThunkInfo
+-- | Construct `ThunkInfo` either from `Context` or information provided by
+-- `GHC` about `a` (see `whereFrom`).
+--
+mkThunkInfo :: Context -> a -> IO ThunkInfo
 #if MIN_VERSION_base(4,16,0)
-getThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
+mkThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
   where
     fmt :: InfoProv -> Info
     fmt InfoProv { ipSrcFile, ipSrcSpan,
@@ -239,7 +243,7 @@ getThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom 
            ipLabel ++ " :: " ++ ipTyDesc
         ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
 #else
-getThunkInfo ctxt _ = return (ThunkInfo (Left ctxt))
+mkThunkInfo ctxt _ = return (ThunkInfo (Left ctxt))
 #endif
 
 
@@ -388,7 +392,7 @@ instance KnownSymbol name => NoThunks (InspectHeapNamed name a) where
 inspectHeap :: Context -> a -> IO (Maybe ThunkInfo)
 inspectHeap ctxt x = do
     containsThunks <- checkContainsThunks x
-    thunkInfo <- getThunkInfo ("..." : ctxt) x
+    thunkInfo <- mkThunkInfo ("..." : ctxt) x
     return $ if containsThunks
                then Just thunkInfo
                else Nothing
