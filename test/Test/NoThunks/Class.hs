@@ -107,7 +107,7 @@ agreeOnNF mThunk mCtxt = isNothing mThunk == isNothing mCtxt
 -- | Check whether the model and the implementation agree on whether the value
 -- is in NF, and if not, what the context of the thunk is.
 agreeOnContext :: Maybe ThunkInfo -> Maybe [String] -> Bool
-agreeOnContext mThunk mCtxt = (thunkInfo <$> mThunk) == (Left <$> mCtxt)
+agreeOnContext mThunk mCtxt = (thunkContext <$> mThunk) == mCtxt
 
 {-------------------------------------------------------------------------------
   Infrastructure

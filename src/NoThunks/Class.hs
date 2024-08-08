@@ -133,7 +133,7 @@ class NoThunks a where
   -- WHNF, and if so, adds the type into the context (using 'showTypeOf' or
   -- 'whereFrom' if available), and calls 'wNoThunks'. See 'ThunkInfo' for
   -- a detailed discussion of the type context.
-  -- 
+  --
   --
   -- See also discussion of caveats listed for 'checkContainsThunks'.
   noThunks :: Context -> a -> IO (Maybe ThunkInfo)
@@ -227,7 +227,10 @@ type Info = String
 -- > ["Int","List","(,)"]     an Int in the [Int] in the pair
 --
 -- Note: prior to `ghc-9.6` a list was indicated by `[]`.
-newtype ThunkInfo = ThunkInfo { thunkInfo  :: Either Context Info }
+data ThunkInfo = ThunkInfo {
+      thunkContext :: Context
+    , thunkInfo    :: Maybe Info
+    }
   deriving Show
 
 -- | Construct `ThunkInfo` either from `Context` or information provided by
@@ -235,7 +238,7 @@ newtype ThunkInfo = ThunkInfo { thunkInfo  :: Either Context Info }
 --
 mkThunkInfo :: Context -> a -> IO ThunkInfo
 #if MIN_VERSION_base(4,16,0)
-mkThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
+mkThunkInfo ctxt a = ThunkInfo ctxt . fmap fmt <$> whereFrom a
   where
     fmt :: InfoProv -> Info
     fmt InfoProv { ipSrcFile, ipSrcSpan,
@@ -243,7 +246,7 @@ mkThunkInfo ctxt a = ThunkInfo . maybe (Left ctxt) (Right . fmt) <$> whereFrom a
            ipLabel ++ " :: " ++ ipTyDesc
         ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
 #else
-mkThunkInfo ctxt _ = return (ThunkInfo (Left ctxt))
+mkThunkInfo ctxt _ = return (ThunkInfo ctxt Nothing)
 #endif
 
 
@@ -527,18 +530,18 @@ deriving via a instance NoThunks a => NoThunks (Semigroup.Dual a)
 deriving via Bool instance NoThunks Semigroup.All
 deriving via Bool instance NoThunks Semigroup.Any
 deriving via a instance NoThunks a => NoThunks (Semigroup.Sum a)
-deriving via a instance NoThunks a => NoThunks (Semigroup.Product a) 
-deriving via a instance NoThunks a => NoThunks (Semigroup.WrappedMonoid a) 
-instance (NoThunks a, NoThunks b) => NoThunks (Semigroup.Arg a b) 
+deriving via a instance NoThunks a => NoThunks (Semigroup.Product a)
+deriving via a instance NoThunks a => NoThunks (Semigroup.WrappedMonoid a)
+instance (NoThunks a, NoThunks b) => NoThunks (Semigroup.Arg a b)
 
 {-------------------------------------------------------------------------------
   Monoids
 -------------------------------------------------------------------------------}
 
-deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.First a) 
-deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.Last a) 
-deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Alt f a) 
-deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a) 
+deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.First a)
+deriving via (Maybe a) instance NoThunks a => NoThunks (Monoid.Last a)
+deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Alt f a)
+deriving via (f a) instance NoThunks (f a) => NoThunks (Monoid.Ap f a)
 
 {-------------------------------------------------------------------------------
   Solo
