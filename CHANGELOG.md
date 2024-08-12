@@ -1,5 +1,9 @@
 # Revision history for nothunks
 
+## 0.3.0 -- not yet released
+
+* Include _both_ `Context` _and_ `Info` in `ThunkInfo` (#54)
+
 ## 0.2.1.0 -- 2024-02-06
 
 * Exported `mkThunkInfo`.
