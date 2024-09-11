@@ -49,7 +49,7 @@ library
                     , ghc-heap
 
     if impl(ghc >= 9.2)
-      build-depends:  wherefrom-compat ^>= 0.1.1
+      build-depends:  wherefrom-compat >= 0.1.1 && < 0.3
 
     if flag(bytestring)
       build-depends:  bytestring >= 0.10 && < 0.13
