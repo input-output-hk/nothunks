@@ -4,3 +4,9 @@ package nothunks
   tests: True
 
 test-show-details: direct
+
+if impl (ghc >= 9.12)
+  allow-newer:
+    , filepath:template-haskell
+    , hedgehog:template-haskell
+    , text:template-haskell
