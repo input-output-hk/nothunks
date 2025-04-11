@@ -1,5 +1,11 @@
 # Revision history for nothunks
 
+## Unreleased
+
+* Added support for:
+  * `containers-0.8`
+  * `random-1.3.0`
+
 ## 0.3.1 -- 2025-01-06
 
 * Make it build with ghc-9.12.
