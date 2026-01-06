@@ -77,6 +77,7 @@ import GHC.InfoProv.Compat
 
 import qualified Control.Concurrent.MVar       as MVar
 import qualified Control.Concurrent.STM.TVar   as TVar
+import qualified Data.Array.Byte               as ByteArray
 import qualified Data.IntMap                   as IntMap
 import qualified Data.IORef                    as IORef
 import qualified Data.Map                      as Map
@@ -602,6 +603,23 @@ deriving via InspectHeap TimeZone         instance NoThunks TimeZone
 deriving via InspectHeap UniversalTime    instance NoThunks UniversalTime
 deriving via InspectHeap UTCTime          instance NoThunks UTCTime
 deriving via InspectHeap ZonedTime        instance NoThunks ZonedTime
+
+
+{-------------------------------------------------------------------------------
+  ByteArray
+-------------------------------------------------------------------------------}
+
+-- | Instance for byte-arrays
+--
+-- We have
+--
+-- > data ByteArray = ByteArray ByteArray#
+--
+-- values of this type consist of a tag followed by an _unboxed_ byte array,
+-- which can't contain thunks. Therefore we only check WHNF.
+-- This is the same as for ShortByteString.
+deriving via OnlyCheckWhnfNamed "ByteArray" ByteArray.ByteArray
+         instance NoThunks ByteArray.ByteArray
 
 {-------------------------------------------------------------------------------
   ByteString

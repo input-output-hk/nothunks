@@ -1,5 +1,9 @@
 # Revision history for nothunks
 
+## 0.3.2 --
+
+* `NoThunks` instance for `Data.Array.Byte.ByteArray`.
+
 ## 0.3.1 -- 2025-07-30
 
 * Make it build with ghc-9.12.
