@@ -100,7 +100,13 @@ import qualified Data.Text.Lazy                as Text.Lazy
 
 #ifdef MIN_VERSION_vector
 import qualified Data.Vector                   as Vector.Boxed
+import qualified Data.Vector.Primitive         as Vector.Primitive
+import qualified Data.Vector.Storable          as Vector.Storable
 import qualified Data.Vector.Unboxed           as Vector.Unboxed
+
+#if MIN_VERSION_vector(0,13,2)
+import qualified Data.Vector.Strict            as Vector.Boxed.Strict
+#endif
 #endif
 
 {-------------------------------------------------------------------------------
@@ -784,6 +790,21 @@ instance NoThunks (Vector.Unboxed.Vector a) where
   showTypeOf _  = "Unboxed.Vector"
   wNoThunks _ _ = return Nothing
 
+instance NoThunks (Vector.Primitive.Vector a) where
+  showTypeOf _  = "Primitive.Vector"
+  wNoThunks _ _ = return Nothing
+
+instance NoThunks (Vector.Storable.Vector a) where
+  showTypeOf _  = "Storable.Vector"
+  wNoThunks _ _ = return Nothing
+
+#if MIN_VERSION_vector(0,13,2)
+
+instance NoThunks a => NoThunks (Vector.Boxed.Strict.Vector a) where
+  showTypeOf _   = "Boxed.Strict.Vector"
+  wNoThunks ctxt = noThunksInValues ctxt . Vector.Boxed.Strict.toList
+
+#endif
 #endif
 
 {-------------------------------------------------------------------------------
