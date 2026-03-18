@@ -3,6 +3,7 @@
 ## 0.3.2 --
 
 * `NoThunks` instance for `Data.Array.Byte.ByteArray`.
+* `NoThunks` instances for `Data.Vector.Primitive`, `Data.Vector.Storable` and `Data.Vector.Strict`
 
 ## 0.3.1 -- 2025-07-30
 
