@@ -1,9 +1,10 @@
 # Revision history for nothunks
 
-## 0.3.2 --
+## 0.3.2 -- 2026-07-16
 
 * `NoThunks` instance for `Data.Array.Byte.ByteArray`.
 * `NoThunks` instances for `Data.Vector.Primitive`, `Data.Vector.Storable` and `Data.Vector.Strict`
+* Improved formatting of `InfoProv` when it's available.
 
 ## 0.3.1 -- 2025-07-30
 

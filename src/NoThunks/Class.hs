@@ -245,13 +245,36 @@ data ThunkInfo = ThunkInfo {
 --
 mkThunkInfo :: Context -> a -> IO ThunkInfo
 #if MIN_VERSION_base(4,16,0)
-mkThunkInfo ctxt a = ThunkInfo ctxt . fmap fmt <$> whereFrom a
+mkThunkInfo ctxt a = ThunkInfo ctxt . (>>= fmt) <$> whereFrom a
   where
-    fmt :: InfoProv -> Info
-    fmt InfoProv { ipSrcFile, ipSrcSpan,
-                              ipLabel, ipTyDesc } =
-           ipLabel ++ " :: " ++ ipTyDesc
-        ++ " @ " ++ ipSrcFile ++ ":" ++ ipSrcSpan
+    fmt :: InfoProv -> Maybe Info
+    fmt InfoProv { ipSrcFile, ipSrcSpan, ipLabel, ipTyDesc }
+        | null ipLabel
+        , null ipSrcSpan
+        , null ipSrcFile
+        , null ipTyDesc
+        = Nothing
+
+        | otherwise
+        = Just $
+           cmb (cmb ipLabel " :: " ipTyDesc)
+               " @ "
+               (cmb ipSrcFile ":" ipSrcSpan)
+
+    cmb x y z
+      | not (null x)
+      , not (null z)
+      = x ++ y ++ z
+
+      | not (null z)
+      = z
+
+      | not (null x)
+      = x
+
+      | otherwise
+      = ""
+
 #else
 mkThunkInfo ctxt _ = return (ThunkInfo ctxt Nothing)
 #endif
